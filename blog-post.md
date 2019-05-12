@@ -138,17 +138,23 @@ To actually have some students to work with we can fetch some placeholder data f
 
 @Injectable()
 export class StudentsService implements OnModuleInit {
-  constructor(private httpService: HttpService) {}
+  constructor(private readonly httpService: HttpService) {}
 
-  onModuleInit() {
-    this.httpService.get('https://jsonplaceholder.typicode.com/users').subscribe(res => {
-      this.students = res.data.map(user => ({
-        matriculationNumber: user.id,
-        name: user.name,
-      }));
-    });
+  async onModuleInit() {
+    this.students = await this._fetchStudents();
   }
+
   ...
+
+  private async _fetchStudents(): Promise<Student[]> {
+    return this.httpService.get('https://jsonplaceholder.typicode.com/users')
+      .pipe(
+        map(res => res.data.map(user => ({
+          matriculationNumber: user.id,
+          name: user.name,
+        }))),
+      ).toPromise();
+  }
 }
 ```
 
@@ -176,7 +182,7 @@ The controller mostly calls service functions and manages the exposed routes. Le
 
 @Controller('students')
 export class StudentsController {
-  constructor(private studentsService: StudentsService) {}
+  constructor(private readonly studentsService: StudentsService) {}
 
   @Get()
   findAll(): Student[] {
@@ -184,8 +190,8 @@ export class StudentsController {
   }
 
   @Get(':mnr')
-  find(@Param() params): Student {
-    return this.studentsService.find(Number(params.mnr));
+  find(@Param('mnr', new ParseIntPipe()) mnr): Student {
+    return this.studentsService.find(mnr);
   }
 }
 ```
@@ -202,6 +208,7 @@ Let's take a look at what we got so far:
 
 ```ts
 # app.module.ts
+# (got rid of the not used AppController and AppService)
 
 import { Module } from '@nestjs/common';
 import { StudentsModule } from './students/students.module';
@@ -230,21 +237,22 @@ export class StudentsModule {}
 ```ts
 # students/students.controller.ts
 
-import { Controller, Get, Param } from '@nestjs/common';
-import { StudentsService, Student } from './students.service';
+import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
+import { Student } from './students.model';
+import { StudentsService } from './students.service';
 
 @Controller('students')
 export class StudentsController {
-  constructor(private studentsService: StudentsService) {}
+  constructor(private readonly studentsService: StudentsService) {}
 
   @Get()
   findAll(): Student[] {
     return this.studentsService.findAll();
   }
 
-  @Get(':id')
-  find(@Param() params): Student {
-    return this.studentsService.find(params.id);
+  @Get(':mnr')
+  find(@Param('mnr', new ParseIntPipe()) mnr): Student {
+    return this.studentsService.find(mnr);
   }
 }
 ```
@@ -252,34 +260,36 @@ export class StudentsController {
 ```ts
 # students/students.service.ts
 
-import { Injectable, OnModuleInit, HttpService } from '@nestjs/common';
-
-export interface Student {
-  id: number;
-  name: string;
-}
+import { HttpService, Injectable, OnModuleInit } from '@nestjs/common';
+import { map } from 'rxjs/operators';
+import { Student } from './students.model';
 
 @Injectable()
 export class StudentsService implements OnModuleInit {
-  private students: Student[];
+  private students: Student[] = [];
 
-  constructor(private httpService: HttpService) {}
+  constructor(private readonly httpService: HttpService) {}
 
-  onModuleInit() {
-    this.httpService.get('https://jsonplaceholder.typicode.com/users').subscribe(res => {
-      this.students = res.data.map(user => ({
-        id: user.id,
-        name: user.name,
-      }));
-    });
+  async onModuleInit() {
+    this.students = await this._fetchStudents();
   }
 
   findAll(): Student[] {
     return this.students;
   }
 
-  find(id: number): Student | undefined {
-    return this.students.find(student => student.id === id);
+  find(matrNr: number): Student | undefined {
+    return this.students.find(s => s.matriculationNumber === matrNr);
+  }
+
+  private async _fetchStudents(): Promise<Student[]> {
+    return this.httpService.get('https://jsonplaceholder.typicode.com/users')
+      .pipe(
+        map(res => res.data.map(user => ({
+          matriculationNumber: user.id,
+          name: user.name,
+        }))),
+      ).toPromise();
   }
 }
 ```
