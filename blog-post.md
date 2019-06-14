@@ -17,7 +17,7 @@ Nest.js has surpassed `routing-controller`'s success (measured in GitHub stars) 
 I don't have a real life use case for nest just yet, but wanted to try it out anyways. Since I am currently occupied with a university project I decided to aptly theme my experimental project and this blog post around students, lectures and courses.
 
 <details>
-  <summary>What will be generated?</summary>
+  <summary>What will be generated? (click to open)</summary>
   <p>
 After having run the `nest new project-name` command you will find a directory `project-name` (or whatever name you chose) which contains a bunch of config and metadata files (`package.json`, `tsconfig.json`, etc.) and a simple nest application in `src/`, complete with Unit- and E2E-tests written using [Jest](https://jestjs.io/).
 
@@ -79,6 +79,8 @@ export class AppService {
 ```
 
 Defines `class AppService` that provides service functionality in the application. It's decorated with `@Injectable()` to let nest know that this can be stated as a dependency somewhere else. For this to work `AppService` has to be enlisted in the array of providers in `AppModule`.
+
+---
 
   </p>
 </details>
