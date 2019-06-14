@@ -1,26 +1,24 @@
 # Writing a basic HTTP server with Nest.js
 
-## Why?
+**To follow along you should be at least somewhat familiar with TypeScript, the terminal and node/npm.\
+Experience with Angular definitely helps but is not a requirement.**
 
-TypeScript! Express is nice, but it still is JS.
+## Background
 
-## Who this post is aiming at(?)mar
+TypeScript is fairly common when it comes to Frontend Frameworks.
+For backend frameworks there still are not a lot of options if you want to enjoy TypeScript at framework level. One well established framework based on [express.js](https://expressjs.com) and [koa.js](https://koajs.com/) is [routing-controller](https://github.com/typestack/routing-controllers) but it's stuck at `v0.7.0` since June 2017 and hasn't seen a lot of activity from the original maintainers since. Coincidentally that is around the time when [nest](https://nestjs.com/) emerged.
 
-Nest.js is a TypeScript Framework for server applications built on top of [Express](https://expressjs.com).
+## Nest.js
 
-I don't have a real use case for nest just yet, but wanted to try it out anyways. Since I am currently occupied with a university project I decided to theme this blog post around students, lectures and courses.
+Nest.js has surpassed `routing-controller`'s success (measured in GitHub stars) manyfold already and is still under heavy active development (`v6.2.0` shipped two days ago at the time of writing this). Like `routing-controller`, nest is built on top of express.js but can optionally be setup to run with [fastify](https://www.fastify.io/).
 
-To follow along this post you should be at least somewhat familiar with TypeScript, the terminal and node/npm. Experience with Angular definitely helps but is not a requirement.
+## What are we going to build?
 
-## Getting started
-
-There is, of course, a nest CLI that provides the necessary tools to get started really quickly.
-Install the CLI globally with `npm install -g @nestjs/cli` and get going with `nest new project-name`. If you have both `npm` and `yarn` installed the `nest new ...` command will let you choose between the available package managers for this projet.
+I don't have a real life use case for nest just yet, but wanted to try it out anyways. Since I am currently occupied with a university project I decided to aptly theme my experimental project and this blog post around students, lectures and courses.
 
 <details>
   <summary>What will be generated?</summary>
   <p>
-
 After having run the `nest new project-name` command you will find a directory `project-name` (or whatever name you chose) which contains a bunch of config and metadata files (`package.json`, `tsconfig.json`, etc.) and a simple nest application in `src/`, complete with Unit- and E2E-tests written using [Jest](https://jestjs.io/).
 
 Let's take a closer look at the files that got generated. To inclined readers it will be fairly obvious that nest is heavily inspired by [Angular](https://angular.io). They not only share similar decorators but also split code similarly and provide seemingly the same Dependency Injection (DI) functionality.
@@ -85,15 +83,17 @@ Defines `class AppService` that provides service functionality in the applicatio
   </p>
 </details>
 
-Feel free to start this skeleton application with `npm run start` and request `http://localhost:3000` to receive the mandatory `Hello World!`.
+## Getting started
 
----
+Install the Nest.js CLI globally with `npm install -g @nestjs/cli` and get going with `nest new <project-name>`. If you have both `npm` and `yarn` installed the `nest new ...` command will let you choose between the available package managers for this projet.
+
+Go ahead and start the blank application with `npm run start` and request `http://localhost:3000` (curl, Postman, Browser, ...) to receive the mandatory `Hello World!`.
 
 ## Students
 
 Let's customize and extend the generated code so that our server can handle students. We start by adding a dedicated `StudentsModule`.
 
-Similar to Angular, nest provides a `generate` CLI functionality. We can create a new module with `nest generate module students` (or shorter: `nest g mo students`). The new module will be placed at *src/students/students.module.ts* and will automatically be added to the list of imported modules in  `AppModule`. To now also add a controller and a service to `StudentsModule` we can execute `nest g s students` and `nest g co students` (`s`ervice, `co`ntroller). These will be added as new files in *src/students* and to the lists for controllers and services in `StudentsModule`. Along with the controller and the service we will get unit test boilerplates "for free".
+Similar to Angular, nest provides a `generate` CLI functionality. We can create a new module with `nest generate module students` (or shorter: `nest g mo students`). The new module will be placed at *src/students/students.module.ts* and will automatically be added to the list of imported modules in  `AppModule`. To now also add a controller and a service to `StudentsModule` we can run `nest g s students` and `nest g co students` (`s`ervice, `co`ntroller). These will be added as new files in *src/students/* and to the lists for controllers and services in the new `StudentsModule`. Along with the controller and the service we will get unit test boilerplates "for free" :tada:.
 
 ### Model
 
@@ -106,9 +106,9 @@ export interface Student {
 }
 ```
 
-In a real life application this model definition would need to be a lot more robust. This can be accomplished by using an already well established library like [TypeORM](https://github.com/typeorm/typeorm) that takes care of database connections. There is a [section in the nest documentation](https://docs.nestjs.com/techniques/database) regarding *TypeORM* as well as other means to store/manipulate data like MongoDB.
+In a real life application this model definition would need to be a lot more robust. This can be accomplished by using an already well established library like [TypeORM](https://github.com/typeorm/typeorm) that takes care of object-relational mapping and database connections. There is a [section in the nest documentation](https://docs.nestjs.com/techniques/database) regarding *TypeORM* as well as other means to store/manipulate data like using [MongoDB](https://www.mongodb.com/).
 
-With this simple interface in place we can now take a closer look at the files we generated using the CLI and extend them a little.
+With this simple interface for students in place we can now take a closer look at the files we generated using the CLI and extend them a little.
 
 ### *students/students.service.ts*
 
@@ -198,14 +198,20 @@ export class StudentsController {
 
 Nest probably wouldn't strive like it does if it wasn't so intuitive to use. Using `@Controller('students')` we tell nest to serve this controller at `/students`. The controller now exposes two functions:
 - `findAll()` is decorated with `@Get()` (notice the empty parantheses). This tells nest to respond to any request to `/students` with the result of `findAll()`.
-- `find(@Param() params)` on the other hand is decorated with `@Get(':id')`, so nest calls this function if it receives a request like `/students/0`. Due to the colon notation `:id` nest will know that this part of the resource path is variable and will forward it as a param to the respective function. To get a hold of the parameter(s) inside the function we need to add the decorated dependency `@Param() params` as an argument.
+- `find(@Param() params)` on the other hand is decorated with `@Get(':id')`, so nest calls this function if it receives a request like `/students/0`. Due to the colon notation `:id` nest will know that this part of the resource path is variable and will forward it as a param to the respective function. To get a hold of the parameter(s) inside the function we can add the `@Param()` decorator to the desired argument. Inside the `@Param()` decorator we can specify which parameter we want to grab and can also add a pipe to automagically typecast the parameter. The `ParseIntPipe` in this case turns the received `string` from the path into a `number`.
 
 **Note that the name of the function does not in any way dictate the URL of the resource.**
 
 ## Resume
 
-Let's take a look at what we got so far:
+Let's take a look at what we got so far.
+The folder structure should look like this:
 
+![directory tree](/docs/tree.png)
+
+<iframe src="https://stackblitz.com/edit/nestjs-test?embed=1&file=src/students/students.controller.ts&view=editor" width="100%" height="400px">
+
+Let's go over each file
 ```ts
 # app.module.ts
 # (got rid of the not used AppController and AppService)
