@@ -16,8 +16,12 @@ Nest.js has surpassed `routing-controller`'s success (measured in GitHub stars) 
 
 I don't have a real life use case for nest just yet, but wanted to try it out anyways. Since I am currently occupied with a university project I decided to aptly theme my experimental project and this blog post around students, lectures and courses.
 
+## Getting started
+
+Install the Nest.js CLI globally with `npm install -g @nestjs/cli` and get going with `nest new <project-name>`. If you have both `npm` and `yarn` installed the `nest new ...` command will let you choose between the available package managers for this projet. After having run the command there is going to be a folder `<project-name>` containing a blank nest.js application.
+
 <details>
-  <summary>What will be generated? (click to open)</summary>
+  <summary>Wait, what did that just generate? (click to open. long and detailed. don't say i didn't warn you)</summary>
   <p>
 After having run the `nest new project-name` command you will find a directory `project-name` (or whatever name you chose) which contains a bunch of config and metadata files (`package.json`, `tsconfig.json`, etc.) and a simple nest application in `src/`, complete with Unit- and E2E-tests written using [Jest](https://jestjs.io/).
 
@@ -85,11 +89,7 @@ Defines `class AppService` that provides service functionality in the applicatio
   </p>
 </details>
 
-## Getting started
-
-Install the Nest.js CLI globally with `npm install -g @nestjs/cli` and get going with `nest new <project-name>`. If you have both `npm` and `yarn` installed the `nest new ...` command will let you choose between the available package managers for this projet.
-
-Go ahead and start the blank application with `npm run start` and request `http://localhost:3000` (curl, Postman, Browser, ...) to receive the mandatory `Hello World!`.
+Go ahead and start that new app with `npm start` and request `http://localhost:3000` (curl, Postman, Browser, ...) to receive the mandatory `Hello World!`.
 
 ## Students
 
