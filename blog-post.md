@@ -300,9 +300,9 @@ export class StudentsService implements OnModuleInit {
 }
 ```
 
-If we start the nest application with `npm run start:dev`/`yarn run start:dev` (`:dev` to get a watcher for file changes) we will get an http server listening at port 3000 (unless you changed the port in `main.ts`).
+If we start the nest application with `{npm|yarn} run start:dev` (`:dev` to keep watching for file changes) we will get an http server listening at port 3000 (unless you changed the port in `main.ts`).
 
-Using a tool like [Postman](https://www.getpostman.com/) we can now start requesting data from our server:
+Using a tool like [Postman](https://www.getpostman.com/) (or simply the browser) we can now start requesting data from our server:
 
 Requesting `http://localhost:3000/students` will yield a list of students. Notice that Nest automatically stringifies objects and adds the `Content-Type: application/json` header to the response.
 
