@@ -23,6 +23,7 @@ Install the Nest.js CLI globally with `npm install -g @nestjs/cli` and get going
 <details>
   <summary>Wait, what did that just generate? (click to open. long and detailed. don't say i didn't warn you)</summary>
   <p>
+
 After having run the `nest new project-name` command you will find a directory `project-name` (or whatever name you chose) which contains a bunch of config and metadata files (`package.json`, `tsconfig.json`, etc.) and a simple nest application in `src/`, complete with Unit- and E2E-tests written using [Jest](https://jestjs.io/).
 
 Let's take a closer look at the files that got generated. To inclined readers it will be fairly obvious that nest is heavily inspired by [Angular](https://angular.io). They not only share similar decorators but also split code similarly and provide seemingly the same Dependency Injection (DI) functionality.
@@ -91,13 +92,13 @@ Defines `class AppService` that provides service functionality in the applicatio
 
 Go ahead and start that new app with `npm start` and request `http://localhost:3000` (curl, Postman, Browser, ...) to receive the mandatory `Hello World!`.
 
-## Students
+## Serving Students
 
 Let's customize and extend the generated code so that our server can handle students. We start by adding a dedicated `StudentsModule`.
 
 Similar to Angular, nest provides a `generate` CLI functionality. We can create a new module with `nest generate module students` (or shorter: `nest g mo students`). The new module will be placed at *src/students/students.module.ts* and will automatically be added to the list of imported modules in  `AppModule`. To now also add a controller and a service to `StudentsModule` we can run `nest g s students` and `nest g co students` (`s`ervice, `co`ntroller). These will be added as new files in *src/students/* and to the lists for controllers and services in the new `StudentsModule`. Along with the controller and the service we will get unit test boilerplates "for free" :tada:.
 
-### Model
+### Model (`students/student.model.ts`)
 
 To make sure controller and service both agree on what a `student` is, we need to define a model. We do so in a separate file *src/students/student.model.ts*:
 
@@ -112,7 +113,7 @@ In a real life application this model definition would need to be a lot more rob
 
 With this simple interface for students in place we can now take a closer look at the files we generated using the CLI and extend them a little.
 
-### *students/students.service.ts*
+### Service (`students/students.service.ts`)
 
 The service will manage the known students, i.e. will fetch students from a data source as well as allow to create, read, update and delete students (*CRUD*). *Persisting data will not be part of this blog post, for now we will simply keep any data in memory as long as our server is running.*
 
@@ -175,7 +176,7 @@ For nest to be able to properly provide the needed `HttpService` we also need to
 export class StudentsModule {}
 ```
 
-### *students/students.controller.ts*
+### Controller (`students/students.controller.ts`)
 
 The controller mostly calls service functions and manages the exposed routes. Let's extend the empty controller:
 
@@ -204,111 +205,165 @@ Nest probably wouldn't strive like it does if it wasn't so intuitive to use. Usi
 
 **Note that the name of the function does not in any way dictate the URL of the resource.**
 
-## Resume
 
-Let's take a look at what we got so far.
-The folder structure should look like this:
+## Adding students
 
-![directory tree](/docs/tree.png)
+### Controller (`students/students.controller.ts`)
 
-<iframe src="https://stackblitz.com/edit/nestjs-test?embed=1&file=src/students/students.controller.ts&view=editor" width="100%" height="400px">
-
-Let's go over each file
-```ts
-# app.module.ts
-# (got rid of the not used AppController and AppService)
-
-import { Module } from '@nestjs/common';
-import { StudentsModule } from './students/students.module';
-
-@Module({
-  imports: [StudentsModule],
-})
-export class AppModule {}
-```
+In order to enable our server to not only serve known students but also receive new students we need to establish a new endpoint:
 
 ```ts
-# students/students.module.ts
-
-import { Module, HttpModule } from '@nestjs/common';
-import { StudentsController } from './students.controller';
-import { StudentsService } from './students.service';
-
-@Module({
-  imports: [HttpModule],
-  controllers: [StudentsController],
-  providers: [StudentsService],
-})
-export class StudentsModule {}
-```
-
-```ts
-# students/students.controller.ts
-
-import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
-import { Student } from './students.model';
-import { StudentsService } from './students.service';
+...
 
 @Controller('students')
 export class StudentsController {
   constructor(private readonly studentsService: StudentsService) {}
 
-  @Get()
-  findAll(): Student[] {
-    return this.studentsService.findAll();
-  }
+  ...
 
-  @Get(':mnr')
-  find(@Param('mnr', new ParseIntPipe()) mnr): Student {
-    return this.studentsService.find(mnr);
+  @Post()
+  @HttpCode(201)
+  create(@Body() student: Student) {
+    this.studentsService.addStudent(student);
   }
 }
 ```
 
-```ts
-# students/students.service.ts
+To create this new POST endpoint we use the `@Post()` decorator (instead of the previous `@Get()`). Notice how it has empty parenthesis so we are listening for the controllers base path (`students`) but this time for `POST` requests. We also introduce the `@HttpCode()` decorator here to tell Nest to respond with a status code of 201 (i.e. "Created").
 
-import { HttpService, Injectable, OnModuleInit } from '@nestjs/common';
-import { map } from 'rxjs/operators';
-import { Student } from './students.model';
+For the `student/:id` endpoint we already made use of the `@Param()` decorator. For this new endpoint we use the `@Body()` decorator. This tells Nest to pass the request body to our handler. Once the body reaches our function to handle the request it is already turned into an JS object by Nest and thus can easily be handled by us.
+
+### Service (`students/students.service.ts`)
+
+For the controller to work properly we also need to add the respective function `addStudent` to the `StudentsService`:
+
+```ts
+...
 
 @Injectable()
 export class StudentsService implements OnModuleInit {
   private students: Student[] = [];
 
-  constructor(private readonly httpService: HttpService) {}
+  ...
 
-  async onModuleInit() {
-    this.students = await this._fetchStudents();
+  addStudent(student: Student) {
+    if (this._isValidStudent(student)) {
+      this.students.push(student);
+    } else {
+      throw new Error(`Trying to add an invalid student!`);
+    }
   }
 
-  findAll(): Student[] {
-    return this.students;
+  private _isValidStudent(student: Student) {
+    return student.name && student.matriculationNumber;
   }
 
-  find(matrNr: number): Student | undefined {
-    return this.students.find(s => s.matriculationNumber === matrNr);
-  }
-
-  private async _fetchStudents(): Promise<Student[]> {
-    return this.httpService.get('https://jsonplaceholder.typicode.com/users')
-      .pipe(
-        map(res => res.data.map(user => ({
-          matriculationNumber: user.id,
-          name: user.name,
-        }))),
-      ).toPromise();
-  }
+  ...
 }
+
 ```
 
-If we start the nest application with `{npm|yarn} run start:dev` (`:dev` to keep watching for file changes) we will get an http server listening at port 3000 (unless you changed the port in `main.ts`).
+Inside of `addStudent()` we throw an error if the passed object does not look like a student (i.e. either has no name or no matriculation number). Nest will automatically respond with a status code of 500 if there was an unhandled exception in a handler.
+
+## Resume
+
+Let's take a look at what we got so far.
+The folder structure should (partly) look like this:
+
+![directory tree](/docs/tree.png)
+
+Let's go over each (meaningful) file
+* `app.module.ts`\
+(got rid of the obsolete AppController and AppService)
+    ```ts
+    import { Module } from '@nestjs/common';
+    import { StudentsModule } from './students/students.module';
+
+    @Module({
+      imports: [StudentsModule],
+    })
+    export class AppModule {}
+    ```
+
+* `students/students.module.ts`
+    ```ts
+    import { Module, HttpModule } from '@nestjs/common';
+    import { StudentsController } from './students.controller';
+    import { StudentsService } from './students.service';
+
+    @Module({
+      imports: [HttpModule],
+      controllers: [StudentsController],
+      providers: [StudentsService],
+    })
+    export class StudentsModule {}
+    ```
+
+* `students/students.controller.ts`
+    ```ts
+    import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
+    import { Student } from './students.model';
+    import { StudentsService } from './students.service';
+
+    @Controller('students')
+    export class StudentsController {
+      constructor(private readonly studentsService: StudentsService) {}
+
+      @Get()
+      findAll(): Student[] {
+        return this.studentsService.findAll();
+      }
+
+      @Get(':mnr')
+      find(@Param('mnr', new ParseIntPipe()) mnr): Student {
+        return this.studentsService.find(mnr);
+      }
+    }
+    ```
+
+* `students/students.service.ts`
+    ```ts
+    import { HttpService, Injectable, OnModuleInit } from '@nestjs/common';
+    import { map } from 'rxjs/operators';
+    import { Student } from './students.model';
+
+    @Injectable()
+    export class StudentsService implements OnModuleInit {
+      private students: Student[] = [];
+
+      constructor(private readonly httpService: HttpService) {}
+
+      async onModuleInit() {
+        this.students = await this._fetchStudents();
+      }
+
+      findAll(): Student[] {
+        return this.students;
+      }
+
+      find(matrNr: number): Student | undefined {
+        return this.students.find(s => s.matriculationNumber === matrNr);
+      }
+
+      private async _fetchStudents(): Promise<Student[]> {
+        return this.httpService.get('https://jsonplaceholder.typicode.com/users')
+          .pipe(
+            map(res => res.data.map(user => ({
+              matriculationNumber: user.id,
+              name: user.name,
+            }))),
+          ).toPromise();
+      }
+    }
+    ```
+
+We can now run this application with `{npm|yarn} run start:dev` (`:dev` to keep watching for file changes) and we will get an http server listening at port 3000 (unless you changed the port in `main.ts`).
 
 Using a tool like [Postman](https://www.getpostman.com/) (or simply the browser) we can now start requesting data from our server:
 
-Requesting `http://localhost:3000/students` will yield a list of students. Notice that Nest automatically stringifies objects and adds the `Content-Type: application/json` header to the response.
+Requesting http://localhost:3000/students will yield a list of students. Notice that Nest automatically stringifies objects and adds the `Content-Type: application/json` header to the response.
 
-Requesting `http://localhost:3000/students/1` expectedly yields the student with id 1, which at the time of writing this is *Leanne Graham*:
+Requesting http://localhost:3000/students/1 expectedly yields the student with id 1, which at the time of writing this is *Leanne Graham*:
 
 ```json
 {
@@ -316,3 +371,14 @@ Requesting `http://localhost:3000/students/1` expectedly yields the student with
     "name": "Leanne Graham"
 }
 ```
+
+## Where to go from here
+
+We taught our application the very basics it needs to handle students. We could continue and provide similar functionality for courses and lectures now. This would mostly follow the same process as before though, so we will skip this and look at some more high-level features that Nest.js provides.
+
+##
+
+
+## Things that did not work ootb
+
+- could not set a response code dynamically (i.e. other than @HttpStatus())

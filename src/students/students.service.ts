@@ -20,6 +20,14 @@ export class StudentsService implements OnModuleInit {
     return this.students.find(s => s.matriculationNumber === matrNr);
   }
 
+  addStudent(student: Student) {
+    if (this._isValidStudent(student)) {
+      this.students.push(student);
+    } else {
+      throw new Error(`Can not add an invalid student! Name: "${student.name}", matriculationNumber: "${student.matriculationNumber}"`);
+    }
+  }
+
   private async _fetchStudents(): Promise<Student[]> {
     return this.httpService.get('https://jsonplaceholder.typicode.com/users')
       .pipe(
@@ -28,5 +36,9 @@ export class StudentsService implements OnModuleInit {
           name: user.name,
         }))),
       ).toPromise();
+  }
+
+  private _isValidStudent(student: Student) {
+    return student.name && student.matriculationNumber;
   }
 }
