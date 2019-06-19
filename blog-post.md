@@ -79,7 +79,7 @@ A controller in Nest.js does what any other controller in an http backend framew
 
 In the `AppController`'s constructor it states a dependency to the `AppService`.
 This dependency will be automatically resolved by Nest.js as long as it's listed in the `providers` of one of the parent modules.
-When the `AppController` is being instantiated it will be passed an instance of `AppService` automatically. Keep on reading...
+When the `AppController` is being instantiated it will be passed an instance of `AppService` automatically. Keep on reading to learn how...
 
 [^controller-decorator]: Mostly routing. We'll cover this later in the `StudentsController`.
 
@@ -134,12 +134,13 @@ With this simplified model (defined as TypeScript interface [^interface]) for st
 [^interface]: [TypeScript documentation: Interfaces](https://www.typescriptlang.org/docs/handbook/interfaces.html)
 
 ### Service (`students/students.service.ts`)
+We can generate a new service by using Nest.js's CLI again: `nest g s students` (`s`ervice).
+It will be added as *src/students/students.service.ts* and will also be appended to the list of provided services in `StudentsModule`.
+We will also get unit test boilerplates "for free" 🎉
 
 The service will manage the known students, i.e. will fetch students from a data source as well as allow to create, read, update and delete students (*CRUD*). *Persisting data will not be part of this blog post, for now we will simply keep any data in memory as long as our server is running.*
 
 ```ts
-...
-
 @Injectable()
 export class StudentsService {
   private students: Student[];
@@ -154,20 +155,85 @@ export class StudentsService {
 }
 ```
 
-To actually have some students to work with we can fetch some placeholder data from [jsonplaceholder](https://jsonplaceholder.typicode.com):
+To actually have some students to work with we can fetch some placeholder user data from [jsonplaceholder](https://jsonplaceholder.typicode.com):
 
 ```ts
-...
-
 @Injectable()
 export class StudentsService implements OnModuleInit {
   constructor(private readonly httpService: HttpService) {}
 
   async onModuleInit() {
+    // Don't do this. Keep on reading though.
     this.students = await this._fetchStudents();
   }
 
   ...
+  // You should mention observables and why you use toPromise here
+  private async _fetchStudents(): Promise<Student[]> {
+    return this.httpService.get('https://jsonplaceholder.typicode.com/users')
+      .pipe(
+        map(res => res.data.map(user => ({
+          matriculationNumber: user.id,
+          name: user.name,
+        }))),
+      ).toPromise();
+  }
+}
+```
+
+Nest.js provides a `HttpService` that we can use here. To get a hold of this service we make Nest.js pass an instance of the `HttpService` to our own `StudentsService`. For Nest.js to be able to properly provide the `HttpService` we also need to add Nest.js's `HttpModule` to the `imports` list of `StudentsModule`. We can use this `HttpService` to fetch students from a remote database.
+
+Now. Nest.js *does* provide lifecycle hooks for you to hook into and execute some code when specific events passed or are about to pass. As shown in the code above it would be possible to fetch the data we need in some early lifecycle hook so it's available when it starts being used. It is, however, **considered bad practive to do API calls and other heavy lifting in lifecycle hooks** as not to slow down the startup process.
+
+The usage of the `OnModuleInit` (in `class StudentsService implements OnModuleInit`) interface and the `onModuleInit()` function in the code above are merely there to showcase Nest.js's lifecycle hooks. `onModuleInit` gets executed as soon as the hosting module (`StudentsModule`) gets initialized.
+
+Inside the `onModuleInit()` we retrieve `jsonplaceholder`s list of users and transform the response to only contain the properties we currently need. In the private function `_fetchStudents()` we initially receive an `Observable` from the `HttpService` which uses RxJS. If you don't know about RxJS I highly recommend you check it out: [RxJS Documentation](https://rxjs-dev.firebaseapp.com/guide/overview). Since we are working with `async/await` a lot we turn the `Observable` into a `Promise` with `.toPromise()`.
+
+We can avoid the bad lifecycle hooking and can overall drastically improve the above service code by applying rough manual caching and some more of that sweet `async/await`:
+
+```ts
+@Injectable()
+export class StudentsService {
+  private _cachedStudents: Student[];
+
+  constructor(private readonly httpService: HttpService) {}
+
+  async findAll(): Promise<Student[]> {
+    return await this._getStudents();
+  }
+
+  async find(matrNr: number): Promise<Student | undefined> {
+    const students = await this._getStudents();
+    return students.find(s => s.matriculationNumber === matrNr);
+  }
+
+  async addStudent(student: Partial<Student>): Promise<any> {
+    try {
+      await this._safeAddStudent(student as Partial<Student>);
+    } catch(error) {
+      console.error(`Could not add student! Name: "${student.name}", matriculationNumber: "${student.matriculationNumber}"`, error);
+    }
+    return Promise.resolve();
+  }
+
+  private async _getStudents(): Promise<Student[]> {
+    if (!this._cachedStudents) {
+      this._cachedStudents = await this._fetchStudents();
+    }
+    return Promise.resolve(this._cachedStudents);
+  }
+
+  private async _safeAddStudent(student: Partial<Student>, fetchIfEmpty: boolean = true): Promise<any> {
+    if  (!student.name || !student.matriculationNumber) {
+      throw new Error('The passed object is not a valid Student');
+    }
+
+    if (!this._cachedStudents) {
+      this._cachedStudents = fetchIfEmpty ? (await this._fetchStudents()) : [];
+    }
+
+    return Promise.resolve(this._cachedStudents.push(student as Student));
+  }
 
   private async _fetchStudents(): Promise<Student[]> {
     return this.httpService.get('https://jsonplaceholder.typicode.com/users')
@@ -181,20 +247,9 @@ export class StudentsService implements OnModuleInit {
 }
 ```
 
-Nest provides an `HttpService` that we can make use of here. We can attach the data fetching logic to one of nests lifecycle events. Here we use `onModuleInit` which gets executed as soon as the hosting module (`StudentsModule`) got initialized (notice the `implements OnModuleInit` that we added to `class StudentsService`). Inside the `onModuleInit()` we retrieve `jsonplaceholder`s list of users and transform the response to only contain the properties we currently need.
+This new code introduces a private property `_cachedStudents` which holds the already fetched students. It also introduces a bug that when you add new students before you receive some the API is never queried... solving this problem is up to you if you want to. [Pull Requests](https://github.com/fischeversenker/nestjs-test/pulls) with suggestions are very welcome. The code can of course still be improved. The whole caching mechanism and the data holding part could each be separated into their own classes and maybe even modules.
 
-For nest to be able to properly provide the needed `HttpService` we also need to add nest's `HttpModule` to the `imports` list of `StudentsModule`:
-
-```ts
-...
-
-@Module({
-  imports: [HttpModule],
-  controllers: [StudentsController],
-  providers: [StudentsService],
-})
-export class StudentsModule {}
-```
+[^rxjs]: https://rxjs-dev.firebaseapp.com/guide/overview
 
 ### Controller (`students/students.controller.ts`)
 
