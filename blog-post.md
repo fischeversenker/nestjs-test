@@ -4,32 +4,33 @@
 Experience with Angular definitely helps but is not a requirement.**
 
 ## Background
-
 TypeScript is fairly common when it comes to Frontend Frameworks.
 For backend frameworks there still are not a lot of options if you want to enjoy TypeScript at framework level. One well established framework based on [express.js](https://expressjs.com) and [koa.js](https://koajs.com/) is [routing-controller](https://github.com/typestack/routing-controllers) but it's stuck at `v0.7.0` since June 2017 and hasn't seen a lot of activity from the original maintainers since. Coincidentally that is around the time when [nest](https://nestjs.com/) emerged.
 
 ## Nest.js
-
 Nest.js has surpassed `routing-controller`'s success (measured in GitHub stars) manyfold already and is still under heavy active development (`v6.2.0` shipped two days ago at the time of writing this). Like `routing-controller`, nest is built on top of express.js but can optionally be setup to run with [fastify](https://www.fastify.io/).
 
 ## What are we going to build?
+I don't have a real life use case for nest just yet, but wanted to try it out anyways.
+In this project and blog post we are going to build a server that manages students [^university].
+After having setup a new Nest.js project we will teach our server to return students and in a second step we will teach it
+to also accept new students.
 
-I don't have a real life use case for nest just yet, but wanted to try it out anyways. Since I am currently occupied with a university project I decided to aptly theme my experimental project and this blog post around students, lectures and courses.
+Sidenote: For the sake of brevity we won't cover database connections, though. All data will be held in memory.
 
-## Getting started
+[^university]: In case you're asking: I am currently working with a local university. That's where the inspiration comes from.
 
-Install the Nest.js CLI globally with `npm install -g @nestjs/cli` and get going with `nest new <project-name>`. If you have both `npm` and `yarn` installed the `nest new ...` command will let you choose between the available package managers for this projet. After having run the command there is going to be a folder `<project-name>` containing a blank nest.js application.
+## Create a new Nest.js project via the CLI
+Install the Nest.js CLI globally with `npm install -g @nestjs/cli` and get going with `nest new <project-name>`. If you have both `npm` and `yarn` installed the `nest new ...` command will let you choose between the available package managers for this project. This will create a folder `<project-name>` containing your "blank"[^hello-world] nest.js application.
 
-<details>
-  <summary>Wait, what did that just generate? (click to open. long and detailed. don't say i didn't warn you)</summary>
-  <p>
+[^hello-world]: Hello world!
 
-After having run the `nest new project-name` command you will find a directory `project-name` (or whatever name you chose) which contains a bunch of config and metadata files (`package.json`, `tsconfig.json`, etc.) and a simple nest application in `src/`, complete with Unit- and E2E-tests written using [Jest](https://jestjs.io/).
+## What did that just generate?
+Inside the new directory `project-name` (or whatever name you chose) you will find a bunch of config and metadata files (`package.json`, `tsconfig.json`, etc.) and a simple nest application in `src/`, complete with Unit- and E2E-tests written with [Jest](https://jestjs.io/).
 
-Let's take a closer look at the files that got generated. To inclined readers it will be fairly obvious that nest is heavily inspired by [Angular](https://angular.io). They not only share similar decorators but also split code similarly and provide seemingly the same Dependency Injection (DI) functionality.
+Let's take a closer look at the files that got generated. This will make it easier to understand what we are going to be doing later in this post.
 
 ### *main.ts*
-
 ```ts
 ...
 
@@ -43,7 +44,6 @@ bootstrap();
 Bootstraps your application by creating a new nest app and telling it to listen for requests on port 3000.
 
 ### *app.module.ts*
-
 ```ts
 ...
 
@@ -55,10 +55,13 @@ Bootstraps your application by creating a new nest app and telling it to listen 
 export class AppModule {}
 ```
 
-Defines `class AppModule` that is decorated with nest's `@Module()` decorator which receives a list of Controllers and Providers that are used throughout the module.
+Defines `class AppModule` that is decorated with nest's `@Module()` decorator which receives a list of Controllers and Providers that are used throughout the module or provided to other consuming modules.
+Quick refresher on modules: A "module" is a piece of software that is very well encapsulated and provides a precise range of functions and a public
+interface so clients know how to use these functions.
+
+In the case of Nest.js the module definition very closely resembles the one you might know from Angular. The metadata we pass to the `@Module()` decorator will be explained in more detail later. Keep on reading.
 
 ### *app.controller.ts*
-
 ```ts
 ...
 
@@ -70,10 +73,17 @@ export class AppController {
 ```
 
 Defines `class AppController`.
-This class is decorated with nest's `@Controller()` decorator. In it's constructor it states a dependency to the `AppService` provided by the `AppModule`. This will be automatically resolved by nest.
+This class is decorated with nest's `@Controller()` decorator which wires things up in the
+background [^controller-decorator] and is required for a class to act as a controller.
+A controller in Nest.js does what any other controller in an http backend framework would do: It provides handlers for routes.
+
+In the `AppController`'s constructor it states a dependency to the `AppService`.
+This dependency will be automatically resolved by Nest.js as long as it's listed in the `providers` of one of the parent modules.
+When the `AppController` is being instantiated it will be passed an instance of `AppService` automatically. Keep on reading...
+
+[^controller-decorator]: Mostly routing. We'll cover this later in the `StudentsController`.
 
 ### *app.service.ts*
-
 ```ts
 ...
 
@@ -83,23 +93,31 @@ export class AppService {
 }
 ```
 
-Defines `class AppService` that provides service functionality in the application. It's decorated with `@Injectable()` to let nest know that this can be stated as a dependency somewhere else. For this to work `AppService` has to be enlisted in the array of providers in `AppModule`.
+Defines `class AppService` that may provide service functionality in the application.
+It's decorated with `@Injectable()` to let Nest.js know that this class can be stated as a dependency
+somewhere else. You can see this in the constructor of *app.controller.ts* above.
+For this to work `AppService` has to be enlisted in the array of providers in `AppModule`.
 
----
+Sidenote:
+To readers who are familiar with Angular it should be fairly obvious that Nest.js is heavily inspired by [Angular](https://angular.io). They not only share similar decorators but also split code similarly and provide seemingly the same Dependency Injection (DI) functionality. If you enjoy this kind of structure and haven't yet done so I strongly recommend giving Angular a try ❤️
 
-  </p>
-</details>
-
-Go ahead and start that new app with `npm start` and request `http://localhost:3000` (curl, Postman, Browser, ...) to receive the mandatory `Hello World!`.
+After we have seen what Nest.js generated for us you can now go ahead and start that new app with `npm start` and check `http://localhost:3000` for a `Hello World!`.
 
 ## Serving Students
+Let's customize and extend the generated code so that our server can serve students. We start by adding a dedicated new module: `StudentsModule`.
 
-Let's customize and extend the generated code so that our server can handle students. We start by adding a dedicated `StudentsModule`.
+Similar to Angular, Nest.js provides a `generate` CLI functionality. We can create a new Nest.js module with `nest generate module students` (or shorter: `nest g mo students`). The new module will be placed at *src/students/students.module.ts* and will automatically be added to the list of imported modules in  `AppModule`.
 
-Similar to Angular, nest provides a `generate` CLI functionality. We can create a new module with `nest generate module students` (or shorter: `nest g mo students`). The new module will be placed at *src/students/students.module.ts* and will automatically be added to the list of imported modules in  `AppModule`. To now also add a controller and a service to `StudentsModule` we can run `nest g s students` and `nest g co students` (`s`ervice, `co`ntroller). These will be added as new files in *src/students/* and to the lists for controllers and services in the new `StudentsModule`. Along with the controller and the service we will get unit test boilerplates "for free" :tada:.
+```ts
+@Module({
+  imports: [],
+  controllers: [],
+  providers: [],
+})
+export class StudentsModule {}
+```
 
 ### Model (`students/student.model.ts`)
-
 To make sure controller and service both agree on what a `student` is, we need to define a model. We do so in a separate file *src/students/student.model.ts*:
 
 ```ts
@@ -109,9 +127,11 @@ export interface Student {
 }
 ```
 
-In a real life application this model definition would need to be a lot more robust. This can be accomplished by using an already well established library like [TypeORM](https://github.com/typeorm/typeorm) that takes care of object-relational mapping and database connections. There is a [section in the nest documentation](https://docs.nestjs.com/techniques/database) regarding *TypeORM* as well as other means to store/manipulate data like using [MongoDB](https://www.mongodb.com/).
+In a real life application this model definition would also need to fit into a database. This can be accomplished by using an already well established library like [TypeORM](https://github.com/typeorm/typeorm) that takes care of object-relational mapping and database connections. There is a [section in the nest documentation](https://docs.nestjs.com/techniques/database) regarding *TypeORM* as well as other means to store/manipulate data like using [MongoDB](https://www.mongodb.com/).
 
-With this simple interface for students in place we can now take a closer look at the files we generated using the CLI and extend them a little.
+With this simplified model (defined as TypeScript interface [^interface]) for students in place we can now start adding some functionality into our `StudentsModule` by creating a service to manage our students.
+
+[^interface]: [TypeScript documentation: Interfaces](https://www.typescriptlang.org/docs/handbook/interfaces.html)
 
 ### Service (`students/students.service.ts`)
 
