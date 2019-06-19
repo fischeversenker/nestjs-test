@@ -1,31 +1,48 @@
-import { HttpService, Injectable, OnModuleInit } from '@nestjs/common';
+import { HttpService, Injectable } from '@nestjs/common';
 import { map } from 'rxjs/operators';
 import { Student } from './students.model';
 
 @Injectable()
-export class StudentsService implements OnModuleInit {
-  private students: Student[] = [];
+export class StudentsService {
+  private _cachedStudents: Student[];
 
   constructor(private readonly httpService: HttpService) {}
 
-  async onModuleInit() {
-    this.students = await this._fetchStudents();
+  async findAll(): Promise<Student[]> {
+    return await this._getStudents();
   }
 
-  findAll(): Student[] {
-    return this.students;
+  async find(matrNr: number): Promise<Student | undefined> {
+    const students = await this._getStudents();
+    return students.find(s => s.matriculationNumber === matrNr);
   }
 
-  find(matrNr: number): Student | undefined {
-    return this.students.find(s => s.matriculationNumber === matrNr);
-  }
-
-  addStudent(student: Student) {
-    if (this._isValidStudent(student)) {
-      this.students.push(student);
-    } else {
-      throw new Error(`Can not add an invalid student! Name: "${student.name}", matriculationNumber: "${student.matriculationNumber}"`);
+  async addStudent(student: Partial<Student>): Promise<any> {
+    try {
+      await this._safeAddStudent(student as Partial<Student>);
+    } catch(error) {
+      console.error(`Could not add student! Name: "${student.name}", matriculationNumber: "${student.matriculationNumber}"`, error);
     }
+    return Promise.resolve();
+  }
+
+  private async _getStudents(): Promise<Student[]> {
+    if (!this._cachedStudents) {
+      this._cachedStudents = await this._fetchStudents();
+    }
+    return Promise.resolve(this._cachedStudents);
+  }
+
+  private async _safeAddStudent(student: Partial<Student>, fetchIfEmpty: boolean = true): Promise<any> {
+    if  (!student.name || !student.matriculationNumber) {
+      throw new Error('The passed object is not a valid Student');
+    }
+
+    if (!this._cachedStudents) {
+      this._cachedStudents = fetchIfEmpty ? (await this._fetchStudents()) : [];
+    }
+
+    return Promise.resolve(this._cachedStudents.push(student as Student));
   }
 
   private async _fetchStudents(): Promise<Student[]> {
@@ -36,9 +53,5 @@ export class StudentsService implements OnModuleInit {
           name: user.name,
         }))),
       ).toPromise();
-  }
-
-  private _isValidStudent(student: Student) {
-    return student.name && student.matriculationNumber;
   }
 }

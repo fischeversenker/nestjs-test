@@ -1,27 +1,28 @@
-import { Body, Controller, Get, HttpCode, Param, ParseIntPipe, Post, Response } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, ParseIntPipe, Post, Req, Res, Next } from '@nestjs/common';
 import { Student } from './students.model';
 import { StudentsService } from './students.service';
+import { Request, Response } from 'express';
 
 @Controller('students')
 export class StudentsController {
   constructor(private readonly studentsService: StudentsService) {}
 
   @Get()
-  findAll(): Student[] {
-    return this.studentsService.findAll();
+  async findAll(): Promise<Student[]> {
+    return await this.studentsService.findAll();
   }
 
   @Get(':mnr')
-  find(@Param('mnr', new ParseIntPipe()) mnr): Student {
-    return this.studentsService.find(mnr);
+  async find(@Param('mnr', new ParseIntPipe()) mnr): Promise<Student> {
+    return await this.studentsService.find(mnr);
   }
 
   @Post()
   @HttpCode(201)
-  create(@Body() student: Student, @Response() res: Response) {
-    this.studentsService.addStudent(student);
-    // TODO: figure out how to set location header
-    res.headers['Location'] = '/students/' + student.matriculationNumber;
-    return res.headers;
+  async create(@Body() student: Student, @Res() res: Response) {
+    await this.studentsService.addStudent(student);
+    res
+      .append('Location', '/students/' + student.matriculationNumber)
+      .send('OK');
   }
 }
