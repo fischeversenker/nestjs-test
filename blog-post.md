@@ -275,7 +275,7 @@ To allow adding new students in a (somewhat) failsafe way we add two new functio
 ```ts
 @Injectable()
 export class StudentsService {
-...
+  ...
 
   async addStudent(student: Partial<Student>): Promise<any> {
     return await this._safeAddStudent(student);
@@ -308,8 +308,8 @@ If it's not a valid student we throw an `HttpException` (imported from `@nestjs/
 Now let's add a new endpoint to our `StudentsController` that makes use of the new service functionality:
 
 ```ts
-    @Controller('students')
-    export class StudentsController {
+@Controller('students')
+export class StudentsController {
   ...
 
   @Post()
@@ -318,31 +318,45 @@ Now let's add a new endpoint to our `StudentsController` that makes use of the n
     await this.studentsService.addStudent(student);
 
     res.append('Location', '/students/' + student.matriculationNumber).send('OK');
-      }
-    }
-    ```
+  }
+}
+```
 
 To create this new POST endpoint we use the `@Post()` decorator (instead of the previous `@Get()`). Notice how it has empty parenthesis so we are listening for the controllers base path (i.e. `students`) but this time for `POST` requests. By default Nest.js responds to POST requests with 204. We introduce the `@HttpCode()` decorator to tell Nest.js to respond with a status code of 201 (i.e. "Created") to make our API slightly less self explaining.
 
-For the `student/:id` endpoint we already made use of the `@Param()` decorator. For this new endpoint we use the `@Body()` decorator. This tells Nest.js to pass the request body to our handler. Once the body reaches our handler function it has already convienently been turned into a JS object and thus can easily be handled by us.
+For the `students/:id` endpoint we already made use of the `@Param()` decorator. For this new endpoint we use the similar `@Body()` decorator. This tells Nest.js to pass the request body to our handler. Once the body reaches our handler function it has already convienently been turned into a JS object and thus can easily be handled by us. We also state that we want to get a hold of the response object with the `@Res()` decorator. This decorator injects the underlying server frameworks response object (`express` in this case) as opposed to a Nest.js wrapper (which we could get via `@Response()`). `Res` is imported from `@nestjs/common`, whereas the `Response` interface comes directly from `express` (we do this to be able to set the `Location` header as I wasn't able to find a Nest.js way of doing this).
 
-
-Requesting http://localhost:3000/students/1 expectedly yields the student with id 1, which at the time of writing this is *Leanne Graham*:
+### Try it out!
+Using a tool that enables us to send POST requests we can now try out this new functionality of adding students. I chose Postman as my software of choice to do this. When we point our POST request to `http://localhost:3000/students` and pass nothing as the request body we will receive the expected response with status 400 that tells us that we did not send the correct data along with the request. If we however add a JSON formatted valid student (according to our model definition) and send a request we will receive "201 Created".
 
 ```json
 {
-    "id": 1,
-    "name": "Leanne Graham"
+  "name": "Tina Tester",
+  "matriculationNumber": 42
 }
 ```
+
+To confirm that this worked we can now get all students with a GET request to `http://localhost:3000/students`. If all went well the received list of students now contains "Tina Tester". Or, even more specific, we can request `http://localhost:3000/students/42` to only receive the newly added Tina.
 
 ## Where to go from here
 
 We taught our application the very basics it needs to handle students. We could continue and provide similar functionality for courses and lectures now. This would mostly follow the same process as before though, so we will skip this and look at some more high-level features that Nest.js provides.
-
+<!-- At this point I wonder where I would have created a html template. Maybe this is worth as a look out so I have a full image? -->
 ##
 
 
 ## Things that did not work ootb
 
 - could not set a response code dynamically (i.e. other than @HttpStatus())
+
+
+
+<!--
+Nice reading.
+1. I miss some introduction what you are doing
+2. The document outline is nice. Handling GET & POST.
+3. A little bit of template handling would be awesome as I would have everything at hand to get started.
+4. The end comes pretty quickly, I wasn't ready to stop reading and wanted to read so much more.
+5. **The** detail/summary thing at the beginning is nice. But after reading everything it feels akward and misplaced. Either make it a chapter or remove it. You are not using details/summary for anything else so it feels like "what happend back there, why did he told me about that stuff which such a mechnanism/
+
+ -->
