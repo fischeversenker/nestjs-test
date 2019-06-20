@@ -99,9 +99,9 @@ somewhere else. You can see this in the constructor of *app.controller.ts* above
 For this to work `AppService` has to be enlisted in the array of providers in `AppModule`.
 
 Sidenote:
-To readers who are familiar with Angular it should be fairly obvious that Nest.js is heavily inspired by [Angular](https://angular.io). They not only share similar decorators but also split code similarly and provide seemingly the same Dependency Injection (DI) functionality. If you enjoy this kind of structure and haven't yet done so I strongly recommend giving Angular a try ❤️
+To readers who are familiar with Angular it should be fairly obvious that Nest.js is heavily inspired by [Angular](https://angular.io). They not only share similar decorators but also split code similarly and provide seemingly the same Dependency Injection (DI) functionality. If you enjoy this kind of structure and haven't yet done so I strongly recommend giving Angular a try ❤️.
 
-After we have seen what Nest.js generated for us you can now go ahead and start that new app with `npm start` and check `http://localhost:3000` for a `Hello World!`.
+After we have seen what Nest.js generated for us you can now go ahead and start that new app with `npm start` and browse to `http://localhost:3000` for a rewarding `Hello World!`.
 
 ## Serving Students
 Let's customize and extend the generated code so that our server can serve students. We start by adding a dedicated new module: `StudentsModule`.
@@ -181,7 +181,7 @@ export class StudentsService implements OnModuleInit {
 }
 ```
 
-Nest.js provides a `HttpService` that we can use here. To get a hold of this service we make Nest.js pass an instance of the `HttpService` to our own `StudentsService`. For Nest.js to be able to properly provide the `HttpService` we also need to add Nest.js's `HttpModule` to the `imports` list of `StudentsModule`. We can use this `HttpService` to fetch students from a remote database.
+Nest.js provides an `HttpService` that we can use here. To get a hold of this service we make Nest.js pass an instance of the `HttpService` to our own `StudentsService`. For Nest.js to be able to properly provide the `HttpService` we also need to add Nest.js's `HttpModule` to the `imports` list of `StudentsModule`. We can use this `HttpService` to fetch students from a remote database.
 
 Now. Nest.js *does* provide lifecycle hooks for you to hook into and execute some code when specific events passed or are about to pass. As shown in the code above it would be possible to fetch the data we need in some early lifecycle hook so it's available when it starts being used. It is, however, **considered bad practive to do API calls and other heavy lifting in lifecycle hooks** as not to slow down the startup process.
 
@@ -207,32 +207,11 @@ export class StudentsService {
     return students.find(s => s.matriculationNumber === matrNr);
   }
 
-  async addStudent(student: Partial<Student>): Promise<any> {
-    try {
-      await this._safeAddStudent(student as Partial<Student>);
-    } catch(error) {
-      console.error(`Could not add student! Name: "${student.name}", matriculationNumber: "${student.matriculationNumber}"`, error);
-    }
-    return Promise.resolve();
-  }
-
   private async _getStudents(): Promise<Student[]> {
     if (!this._cachedStudents) {
       this._cachedStudents = await this._fetchStudents();
     }
     return Promise.resolve(this._cachedStudents);
-  }
-
-  private async _safeAddStudent(student: Partial<Student>, fetchIfEmpty: boolean = true): Promise<any> {
-    if  (!student.name || !student.matriculationNumber) {
-      throw new Error('The passed object is not a valid Student');
-    }
-
-    if (!this._cachedStudents) {
-      this._cachedStudents = fetchIfEmpty ? (await this._fetchStudents()) : [];
-    }
-
-    return Promise.resolve(this._cachedStudents.push(student as Student));
   }
 
   private async _fetchStudents(): Promise<Student[]> {
@@ -249,64 +228,81 @@ export class StudentsService {
 
 This new code introduces a private property `_cachedStudents` which holds the already fetched students. It also introduces a bug that when you add new students before you receive some the API is never queried... solving this problem is up to you if you want to. [Pull Requests](https://github.com/fischeversenker/nestjs-test/pulls) with suggestions are very welcome. The code can of course still be improved. The whole caching mechanism and the data holding part could each be separated into their own classes and maybe even modules.
 
-[^rxjs]: https://rxjs-dev.firebaseapp.com/guide/overview
-
 ### Controller (`students/students.controller.ts`)
+Similarly to the service we just covered we can generate a new controller by using Nest.js's CLI: `nest g co students` (`co`ntroller).
+It will be added as *src/students/students.controller.ts* and will also be appended to the list of known controllers in `StudentsModule` automatically.
+The generator will also create unit test boilerplates as well.
 
-The controller mostly calls service functions and manages the exposed routes. Let's extend the empty controller:
+This new controller calls service functions and exposes routes in your server. Let's extend the empty controller:
 
 ```ts
-...
-
 @Controller('students')
 export class StudentsController {
   constructor(private readonly studentsService: StudentsService) {}
 
   @Get()
-  findAll(): Student[] {
-    return this.studentsService.findAll();
+  async findAll(): Promise<Student[]> {
+    return await this.studentsService.findAll();
   }
 
-  @Get(':mnr')
-  find(@Param('mnr', new ParseIntPipe()) mnr): Student {
-    return this.studentsService.find(mnr);
+  @Get(':matriculationNumber')
+  async find(@Param('matriculationNumber', new ParseIntPipe()) matriculationNumber): Promise<Student> {
+    return await this.studentsService.find(matriculationNumber);
   }
 }
 ```
 
-Nest probably wouldn't strive like it does if it wasn't so intuitive to use. Using `@Controller('students')` we tell nest to serve this controller at `/students`. The controller now exposes two functions:
-- `findAll()` is decorated with `@Get()` (notice the empty parantheses). This tells nest to respond to any request to `/students` with the result of `findAll()`.
-- `find(@Param() params)` on the other hand is decorated with `@Get(':mnr')`, so nest calls this function if it receives a request like `/students/0`. Due to the colon notation `:mnr` nest will know that this part of the resource path is variable and will forward it as a param to the respective function. To get a hold of the parameter(s) inside the function we can add the `@Param()` decorator to the desired argument. Inside the `@Param()` decorator we can specify which parameter we want to grab and can also add a pipe to automagically typecast the parameter. The `ParseIntPipe` in this case turns the received `string` from the path into a `number`.
+Nest.js probably wouldn't strive like it does if it wasn't so intuitive to use. Using the decorator `@Controller('students')` we tell Nest.js to serve this controller at path `/students`. The controller exposes two functions:
+- `findAll()` is decorated with `@Get()` (notice the empty parantheses). This tells Nest.js to respond to any GET request to `/students` with the result of `findAll()`.
+- `find(...)` on the other hand is decorated with `@Get(':matriculationNumber')`, so Nest.js calls this function if it receives a GET request like `/students/0`. Due to the colon notation `:matriculationNumber` Nest.js will know that this part of the resource path can change from request to request and will forward it to the respective function. To get a hold of the parameter(s) inside the function we can add the `@Param()` decorator to the desired argument. Inside the `@Param()` decorator we can specify which parameter we want to grab and can also add a pipe to automagically coerce the parameter. The `ParseIntPipe` in this case turns the received `string` (which all params are initially) into a `number` (Int).
 
-**Note that the name of the function does not in any way dictate the URL of the resource.**
+**Note that the name of the function does not in any way dictate the URL of the resource. That's all handled by the `@Get('path/to/your/resource')` decorator.**
 
+You might as well rename `findAll()` to something like `foobar()` and the app would work the same as it did before (all else unchanged). Meaningful function names are nontheless very valuable when it comes to debugging and generally reading the code.
+
+### Run it!
+With module, service and controller written we can go ahead and fire up our server with `npm start` (or `npm run start:dev` if you want the server to recompile on file changes).
+As soon as the server is running you can navigate to `http://localhost:3000/students` to receive a list of students (which are actually jsonplaceholder's users) or request `http://localhost:3000/students/1` to receive only one specific student identified by their matriculationNumber (`1` in this case).
+
+So now we can request students both in their entirety and individuals. Wouldn't it be nice to also be able to add new students? Keep on reading...
 
 ## Adding students
+To be able to send new students to our server we need to use a different HTTP method than we did before. The current handlers in our `StudentsController` all deal with GET requests which by definition cannot contain a body. We want to establish a new endpoint for POST requests to add new students (aiming for ReST compliance here).
 
-### Controller (`students/students.controller.ts`)
-
-In order to enable our server to not only serve known students but also receive new students we need to establish a new endpoint:
+### Service (`students/students.service.ts`)
+Let's first extend `StudentsService` so it allows adding a new student:
 
 ```ts
+@Injectable()
+export class StudentsService {
 ...
 
-@Controller('students')
-export class StudentsController {
-  constructor(private readonly studentsService: StudentsService) {}
+  async addStudent(student: Partial<Student>): Promise<any> {
+    return await this._safeAddStudent(student);
+  }
+
+  private async _safeAddStudent(student: Partial<Student>, fetchIfEmpty: boolean = true): Promise<any> {
+    if  (!student.name || !student.matriculationNumber) {
+      throw new HttpException({ error: 'Not a valid student!' }, 400);
+    }
+
+    if (!this._cachedStudents) {
+      this._cachedStudents = fetchIfEmpty ? (await this._fetchStudents()) : [];
+    }
+
+    return Promise.resolve(this._cachedStudents.push(student as Student));
+  }
 
   ...
-
-  @Post()
-  @HttpCode(201)
-  create(@Body() student: Student) {
-    this.studentsService.addStudent(student);
-  }
 }
 ```
 
-To create this new POST endpoint we use the `@Post()` decorator (instead of the previous `@Get()`). Notice how it has empty parenthesis so we are listening for the controllers base path (`students`) but this time for `POST` requests. We also introduce the `@HttpCode()` decorator here to tell Nest to respond with a status code of 201 (i.e. "Created").
+The new public function `addStudent()` accepts a `Partial<Student>` [^partials] since we can't rely on the client passing a valid student.
+Inside of `addStudent()` we call the private function `_safeAddStudent` that makes sure that our cache is setup and the passed object is a valid student.
+If it's not a valid student we throw an `HttpException` (imported from `@nestjs/common`). This exception will be caught by Nest.js's global "Exception Filter" [^exception-filters]. Nest.js uses this filter layer to catch any uncaught exceptions and respond appropiately. In this case the response will have a status code of 400 (Bad Request) and will pass the error object we gave the `HttpException` in the response body.
 
-For the `student/:id` endpoint we already made use of the `@Param()` decorator. For this new endpoint we use the `@Body()` decorator. This tells Nest to pass the request body to our handler. Once the body reaches our function to handle the request it is already turned into an JS object by Nest and thus can easily be handled by us.
+[^partials]: [TypeScript documentation: Advanced Types](https://www.typescriptlang.org/docs/handbook/advanced-types.html)
+[^exception-filters]: [Nest.js documentation: Exception filters](https://docs.nestjs.com/exception-filters)
 
 ### Service (`students/students.service.ts`)
 
