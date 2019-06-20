@@ -1,7 +1,7 @@
-import { Body, Controller, Get, HttpCode, Param, ParseIntPipe, Post, Req, Res, Next } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, ParseIntPipe, Post, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { Student } from './students.model';
 import { StudentsService } from './students.service';
-import { Request, Response } from 'express';
 
 @Controller('students')
 export class StudentsController {

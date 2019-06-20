@@ -1,4 +1,4 @@
-import { HttpService, Injectable, HttpException } from '@nestjs/common';
+import { HttpException, HttpService, Injectable } from '@nestjs/common';
 import { map } from 'rxjs/operators';
 import { Student } from './students.model';
 
