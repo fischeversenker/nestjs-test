@@ -12,17 +12,16 @@ export class StudentsController {
     return await this.studentsService.findAll();
   }
 
-  @Get(':mnr')
-  async find(@Param('mnr', new ParseIntPipe()) mnr): Promise<Student> {
-    return await this.studentsService.find(mnr);
+  @Get(':matriculationNumber')
+  async find(@Param('matriculationNumber', new ParseIntPipe()) matriculationNumber): Promise<Student> {
+    return await this.studentsService.find(matriculationNumber);
   }
 
   @Post()
   @HttpCode(201)
-  async create(@Body() student: Student, @Res() res: Response) {
+  async create(@Body() student: Partial<Student>, @Res() res: Response) {
     await this.studentsService.addStudent(student);
-    res
-      .append('Location', '/students/' + student.matriculationNumber)
-      .send('OK');
+
+    res.append('Location', '/students/' + student.matriculationNumber).send('OK');
   }
 }

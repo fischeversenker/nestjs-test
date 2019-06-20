@@ -23,10 +23,10 @@ describe('Students Controller', () => {
   describe('findAll', () => {
     it('should return all students', () => {
       const students = [{
-        id: 0,
+        matriculationNumber: 0,
         name: 'Max',
       }];
-      jest.spyOn(studentsService, 'getAll').mockReturnValue(students);
+      jest.spyOn(studentsService, 'findAll').mockReturnValue(Promise.resolve(students));
 
       expect(controller.findAll()).toBe(students);
     });

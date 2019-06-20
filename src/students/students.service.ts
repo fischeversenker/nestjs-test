@@ -1,4 +1,4 @@
-import { HttpService, Injectable } from '@nestjs/common';
+import { HttpService, Injectable, HttpException } from '@nestjs/common';
 import { map } from 'rxjs/operators';
 import { Student } from './students.model';
 
@@ -18,12 +18,7 @@ export class StudentsService {
   }
 
   async addStudent(student: Partial<Student>): Promise<any> {
-    try {
-      await this._safeAddStudent(student as Partial<Student>);
-    } catch(error) {
-      console.error(`Could not add student! Name: "${student.name}", matriculationNumber: "${student.matriculationNumber}"`, error);
-    }
-    return Promise.resolve();
+    return await this._safeAddStudent(student);
   }
 
   private async _getStudents(): Promise<Student[]> {
@@ -35,7 +30,7 @@ export class StudentsService {
 
   private async _safeAddStudent(student: Partial<Student>, fetchIfEmpty: boolean = true): Promise<any> {
     if  (!student.name || !student.matriculationNumber) {
-      throw new Error('The passed object is not a valid Student');
+      throw new HttpException({ error: 'Not a valid student!' }, 400);
     }
 
     if (!this._cachedStudents) {
