@@ -267,10 +267,10 @@ As soon as the server is running you can navigate to `http://localhost:3000/stud
 So now we can request students both in their entirety and individuals. Wouldn't it be nice to also be able to add new students? Keep on reading...
 
 ## Adding students
-To be able to send new students to our server we need to use a different HTTP method than we did before. The current handlers in our `StudentsController` all deal with GET requests which by definition cannot contain a body. We want to establish a new endpoint for POST requests to add new students (aiming for ReST compliance here).
+To be able to send new students to our server we need to use a different HTTP method than we did before. The current handlers in our `StudentsController` all deal with GET requests which by definition cannot contain a body. We want to establish a new endpoint for POST requests to add new students (aiming for ReST compliance here). We will first extend `StudentsService`.
 
 ### Service (`students/students.service.ts`)
-Let's first extend `StudentsService` so it allows adding a new student:
+To allow adding new students in a (somewhat) failsafe way we add two new functions to our service:
 
 ```ts
 @Injectable()
@@ -298,141 +298,34 @@ export class StudentsService {
 ```
 
 The new public function `addStudent()` accepts a `Partial<Student>` [^partials] since we can't rely on the client passing a valid student.
-Inside of `addStudent()` we call the private function `_safeAddStudent` that makes sure that our cache is setup and the passed object is a valid student.
+Inside of `addStudent()` we call the private function `_safeAddStudent()` that makes sure that our cache is setup and the passed object is a valid student.
 If it's not a valid student we throw an `HttpException` (imported from `@nestjs/common`). This exception will be caught by Nest.js's global "Exception Filter" [^exception-filters]. Nest.js uses this filter layer to catch any uncaught exceptions and respond appropiately. In this case the response will have a status code of 400 (Bad Request) and will pass the error object we gave the `HttpException` in the response body.
 
 [^partials]: [TypeScript documentation: Advanced Types](https://www.typescriptlang.org/docs/handbook/advanced-types.html)
 [^exception-filters]: [Nest.js documentation: Exception filters](https://docs.nestjs.com/exception-filters)
 
-### Service (`students/students.service.ts`)
-
-For the controller to work properly we also need to add the respective function `addStudent` to the `StudentsService`:
+### Controller (`students/students.controller.ts`)
+Now let's add a new endpoint to our `StudentsController` that makes use of the new service functionality:
 
 ```ts
-...
-
-@Injectable()
-export class StudentsService implements OnModuleInit {
-  private students: Student[] = [];
-
-  ...
-
-  addStudent(student: Student) {
-    if (this._isValidStudent(student)) {
-      this.students.push(student);
-    } else {
-      throw new Error(`Trying to add an invalid student!`);
-    }
-  }
-
-  private _isValidStudent(student: Student) {
-    return student.name && student.matriculationNumber;
-  }
-
-  ...
-}
-
-```
-
-Inside of `addStudent()` we throw an error if the passed object does not look like a student (i.e. either has no name or no matriculation number). Nest will automatically respond with a status code of 500 if there was an unhandled exception in a handler.
-
-## Resume
-
-Let's take a look at what we got so far.
-The folder structure should (partly) look like this:
-
-![directory tree](/docs/tree.png)
-
-Let's go over each (meaningful) file
-* `app.module.ts`\
-(got rid of the obsolete AppController and AppService)
-    ```ts
-    import { Module } from '@nestjs/common';
-    import { StudentsModule } from './students/students.module';
-
-    @Module({
-      imports: [StudentsModule],
-    })
-    export class AppModule {}
-    ```
-
-* `students/students.module.ts`
-    ```ts
-    import { Module, HttpModule } from '@nestjs/common';
-    import { StudentsController } from './students.controller';
-    import { StudentsService } from './students.service';
-
-    @Module({
-      imports: [HttpModule],
-      controllers: [StudentsController],
-      providers: [StudentsService],
-    })
-    export class StudentsModule {}
-    ```
-
-* `students/students.controller.ts`
-    ```ts
-    import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
-    import { Student } from './students.model';
-    import { StudentsService } from './students.service';
-
     @Controller('students')
     export class StudentsController {
-      constructor(private readonly studentsService: StudentsService) {}
+  ...
 
-      @Get()
-      findAll(): Student[] {
-        return this.studentsService.findAll();
-      }
+  @Post()
+  @HttpCode(201)
+  async create(@Body() student: Partial<Student>, @Res() res: Response) {
+    await this.studentsService.addStudent(student);
 
-      @Get(':mnr')
-      find(@Param('mnr', new ParseIntPipe()) mnr): Student {
-        return this.studentsService.find(mnr);
+    res.append('Location', '/students/' + student.matriculationNumber).send('OK');
       }
     }
     ```
 
-* `students/students.service.ts`
-    ```ts
-    import { HttpService, Injectable, OnModuleInit } from '@nestjs/common';
-    import { map } from 'rxjs/operators';
-    import { Student } from './students.model';
+To create this new POST endpoint we use the `@Post()` decorator (instead of the previous `@Get()`). Notice how it has empty parenthesis so we are listening for the controllers base path (i.e. `students`) but this time for `POST` requests. By default Nest.js responds to POST requests with 204. We introduce the `@HttpCode()` decorator to tell Nest.js to respond with a status code of 201 (i.e. "Created") to make our API slightly less self explaining.
 
-    @Injectable()
-    export class StudentsService implements OnModuleInit {
-      private students: Student[] = [];
+For the `student/:id` endpoint we already made use of the `@Param()` decorator. For this new endpoint we use the `@Body()` decorator. This tells Nest.js to pass the request body to our handler. Once the body reaches our handler function it has already convienently been turned into a JS object and thus can easily be handled by us.
 
-      constructor(private readonly httpService: HttpService) {}
-
-      async onModuleInit() {
-        this.students = await this._fetchStudents();
-      }
-
-      findAll(): Student[] {
-        return this.students;
-      }
-
-      find(matrNr: number): Student | undefined {
-        return this.students.find(s => s.matriculationNumber === matrNr);
-      }
-
-      private async _fetchStudents(): Promise<Student[]> {
-        return this.httpService.get('https://jsonplaceholder.typicode.com/users')
-          .pipe(
-            map(res => res.data.map(user => ({
-              matriculationNumber: user.id,
-              name: user.name,
-            }))),
-          ).toPromise();
-      }
-    }
-    ```
-
-We can now run this application with `{npm|yarn} run start:dev` (`:dev` to keep watching for file changes) and we will get an http server listening at port 3000 (unless you changed the port in `main.ts`).
-
-Using a tool like [Postman](https://www.getpostman.com/) (or simply the browser) we can now start requesting data from our server:
-
-Requesting http://localhost:3000/students will yield a list of students. Notice that Nest automatically stringifies objects and adds the `Content-Type: application/json` header to the response.
 
 Requesting http://localhost:3000/students/1 expectedly yields the student with id 1, which at the time of writing this is *Leanne Graham*:
 
