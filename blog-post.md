@@ -327,7 +327,9 @@ To create this new POST endpoint we use the `@Post()` decorator (instead of the 
 For the `students/:id` endpoint we already made use of the `@Param()` decorator. For this new endpoint we use the similar `@Body()` decorator. This tells Nest.js to pass the request body to our handler. Once the body reaches our handler function it has already convienently been turned into a JS object and thus can easily be handled by us. We also state that we want to get a hold of the response object with the `@Res()` decorator. This decorator injects the underlying server framework's (`express` in this case) response object as opposed to a Nest.js wrapper (which we could get via `@Response()`). `Res` is imported from `@nestjs/common`, whereas the `Response` interface comes directly from `express`. We do this to be able to set the `Location` header... I wasn't able to find the Nest.js way of doing this.
 
 ### Try it out!
-Using a tool that enables us to send POST requests we can now test this new functionality of adding students. I decided to use Postman [^postman] to do this. When we point our POST request to `http://localhost:3000/students` and pass nothing as the request body we will receive the expected response with status code `400` that tells us that we did not send the correct data along with the request. If we however add a JSON formatted valid student (according to our model definition at least) as the request body we will receive a "201 Created".
+Using a tool that enables us to send POST requests we can now test this new functionality of adding students. I decided to use Postman [^postman] to do this. We first do a GET request to `http://localhost:3000/students` to be able to verify that we student we are about to add is not yet on the list. We will receive the same 10 students we received earlier.
+
+When we now trigger a POST request to `http://localhost:3000/students` and pass nothing as the request body we will receive the expected response with status code `400` that tells us that we did not send the correct data along with the request. If we however send a JSON formatted valid student (according to our model definition at least) we will receive a "201 Created" that tells us that the student got added to the service's list of students.
 
 ```json
 {
@@ -336,22 +338,56 @@ Using a tool that enables us to send POST requests we can now test this new func
 }
 ```
 
-To confirm that this worked we can now get all students with a GET request to `http://localhost:3000/students` like we did before. If all went well the received list of students now contains Tina Tester. Or, even more specific, we can request `http://localhost:3000/students/42` to only receive Tina.
+To confirm that this worked we can now get all students again with a GET request to `http://localhost:3000/students` like we did before. The received list of students now contains Tina Tester. We can also request `http://localhost:3000/students/42` to only receive this particular student that we just added.
 
 [^postman]: [Get Postman](https://www.getpostman.com/)
 
+## Birds Eye View on HTML Templates
+Since Nest.js is "nothing more" than a framework built on top of other HTTP server frameworks the process of rendering HTML in the response is specific to the underlying server framework that's being used. By default Nest.js uses `express` as the server framework which is why this brief overview shall show the `express` way of rendering HTML templates. If you are already familiar with `express` and its view engines you should be fairly familiar with the setup.
 
-## Where to go from here
+To get started let's first define a simple template that allows us to respond to `GET /students` with an HTML rendered list of students instead of the current JSON response. There are various ways of doing interpolation in a template. For this post we will be using Handlebars as it's fairly easy to integrate and well established. Let's setup a new file `src/views/students.hbs` (`hbs` is for `handlebars`):
 
-We taught our application the very basics it needs to handle students. We could continue and provide similar functionality for courses and lectures now. This would mostly follow the same process as before though, so we will skip this and look at some more high-level features that Nest.js provides.
+```html
+<ul>
+{{let student of students}}
+  <li>Name: {{student.name}}, Matriculation number: {{student.matriculationNumber}}
+```
+
+Let's also add another template `src/views/index.hbs` to serve as our main HTML wrapper:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Students</title>
+</head>
+<body>
+  {{fragment}}
+</body>
+</html>
+```
+
+To tell Nest.js to render these templates and respond with the generated HTML we need to adjust the Nest.js `app` that's being created in `src/main.ts`:
+
+In the handler for `GET /students` (`students.controller:findAll()`) we now need to do two things:
+- add a `@Render()` decorator with the path to the desired template
+- return everything the template needs to render properly
+
+```typescript
+
+```
+
+We could continue and provide similar functionality for courses and lectures now. This would mostly follow the same process as before though, so we will skip this and look at some more high-level features that Nest.js provides.
 <!-- At this point I wonder where I would have created a html template. Maybe this is worth as a look out so I have a full image? -->
 ##
 
 
-## Things that did not work ootb
-
-- could not set a response code dynamically (i.e. other than @HttpStatus())
-
+## Things to consider
+- swagger documentation generation
+- testing
+- serving a full-blown FE application with Vue or similar through a template
 
 
 <!--

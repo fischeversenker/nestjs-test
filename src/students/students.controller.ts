@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, ParseIntPipe, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, ParseIntPipe, Post, Res, Render } from '@nestjs/common';
 import { Response } from 'express';
 import { Student } from './students.model';
 import { StudentsService } from './students.service';
@@ -8,8 +8,10 @@ export class StudentsController {
   constructor(private readonly studentsService: StudentsService) {}
 
   @Get()
-  async findAll(): Promise<Student[]> {
-    return await this.studentsService.findAll();
+  @Render('students')
+  async findAll(): Promise<Object> {
+    const students = await this.studentsService.findAll();
+    return { students };
   }
 
   @Get(':matriculationNumber')
