@@ -324,10 +324,10 @@ export class StudentsController {
 
 To create this new POST endpoint we use the `@Post()` decorator (instead of the previous `@Get()`). Notice how it has empty parenthesis so we are listening for the controllers base path (i.e. `students`) but this time for `POST` requests. By default Nest.js responds to POST requests with 204. We introduce the `@HttpCode()` decorator to tell Nest.js to respond with a status code of 201 (i.e. "Created") to make our API slightly less self explaining.
 
-For the `students/:id` endpoint we already made use of the `@Param()` decorator. For this new endpoint we use the similar `@Body()` decorator. This tells Nest.js to pass the request body to our handler. Once the body reaches our handler function it has already convienently been turned into a JS object and thus can easily be handled by us. We also state that we want to get a hold of the response object with the `@Res()` decorator. This decorator injects the underlying server frameworks response object (`express` in this case) as opposed to a Nest.js wrapper (which we could get via `@Response()`). `Res` is imported from `@nestjs/common`, whereas the `Response` interface comes directly from `express` (we do this to be able to set the `Location` header as I wasn't able to find a Nest.js way of doing this).
+For the `students/:id` endpoint we already made use of the `@Param()` decorator. For this new endpoint we use the similar `@Body()` decorator. This tells Nest.js to pass the request body to our handler. Once the body reaches our handler function it has already convienently been turned into a JS object and thus can easily be handled by us. We also state that we want to get a hold of the response object with the `@Res()` decorator. This decorator injects the underlying server framework's (`express` in this case) response object as opposed to a Nest.js wrapper (which we could get via `@Response()`). `Res` is imported from `@nestjs/common`, whereas the `Response` interface comes directly from `express`. We do this to be able to set the `Location` header... I wasn't able to find the Nest.js way of doing this.
 
 ### Try it out!
-Using a tool that enables us to send POST requests we can now try out this new functionality of adding students. I chose Postman as my software of choice to do this. When we point our POST request to `http://localhost:3000/students` and pass nothing as the request body we will receive the expected response with status 400 that tells us that we did not send the correct data along with the request. If we however add a JSON formatted valid student (according to our model definition) and send a request we will receive "201 Created".
+Using a tool that enables us to send POST requests we can now test this new functionality of adding students. I decided to use Postman [^postman] to do this. When we point our POST request to `http://localhost:3000/students` and pass nothing as the request body we will receive the expected response with status code `400` that tells us that we did not send the correct data along with the request. If we however add a JSON formatted valid student (according to our model definition at least) as the request body we will receive a "201 Created".
 
 ```json
 {
@@ -336,7 +336,10 @@ Using a tool that enables us to send POST requests we can now try out this new f
 }
 ```
 
-To confirm that this worked we can now get all students with a GET request to `http://localhost:3000/students`. If all went well the received list of students now contains "Tina Tester". Or, even more specific, we can request `http://localhost:3000/students/42` to only receive the newly added Tina.
+To confirm that this worked we can now get all students with a GET request to `http://localhost:3000/students` like we did before. If all went well the received list of students now contains Tina Tester. Or, even more specific, we can request `http://localhost:3000/students/42` to only receive Tina.
+
+[^postman]: [Get Postman](https://www.getpostman.com/)
+
 
 ## Where to go from here
 
