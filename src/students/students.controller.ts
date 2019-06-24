@@ -8,10 +8,16 @@ export class StudentsController {
   constructor(private readonly studentsService: StudentsService) {}
 
   @Get()
-  @Render('students')
+  @Render('index')
   async findAll(): Promise<Object> {
     const students = await this.studentsService.findAll();
     return { students };
+  }
+
+  @Get('html')
+  async renderStudents(@Res() res: Response): Promise<void> {
+    const students = await this.studentsService.findAll();
+    return res.render('partials/students', { students });
   }
 
   @Get(':matriculationNumber')
