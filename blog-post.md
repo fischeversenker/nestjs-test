@@ -343,7 +343,19 @@ To confirm that this worked we can now get all students again with a GET request
 [^postman]: [Get Postman](https://www.getpostman.com/)
 
 ## Birds Eye View on HTML Templates
-Since Nest.js is "nothing more" than a framework built on top of other HTTP server frameworks the process of rendering HTML in the response is specific to the underlying server framework that's being used. By default Nest.js uses `express` as the server framework which is why this brief overview shall show the `express` way of rendering HTML templates. If you are already familiar with `express` and its view engines you should be fairly familiar with the setup.
+Since Nest.js is "nothing more" than a framework built on top of other HTTP server frameworks the process of rendering HTML is specific to the underlying server framework that's being used. By default Nest.js uses `express` as the server framework. This will be a brief overview to show the `express` way of rendering HTML templates. If you are already familiar with `express` and its view engines you should be fairly familiar with the setup.
+
+We will serve `hbs` [^hbs] templates and make use of `handlebars` Partials in this post. To make it at least somewhat decent I added a stylesheet and a few lines of JS as well. This is what we will get:
+
+![student list](docs/newStudentForm.png)
+
+We will only look at the most important files here. You can get the whole picture by checking out the code at [github repository[TODO:HREF]](...).
+
+[^hbs]: `hbs` is a port/wrapper from `handlebars` (template engine) to run in `express`
+
+-------------------------
+-- REFINE FROM HERE ON DOWN
+-------------------------
 
 To get started let's first define a simple template that allows us to respond to `GET /students` with an HTML rendered list of students instead of the current JSON response. There are various ways of doing interpolation in a template. For this post we will be using Handlebars as it's fairly easy to integrate and well established. Let's setup a new file `src/views/students.hbs` (`hbs` is for `handlebars`):
 
