@@ -338,63 +338,74 @@ When we now trigger a POST request to `http://localhost:3000/students` and pass 
 }
 ```
 
-To confirm that this worked we can now get all students again with a GET request to `http://localhost:3000/students` like we did before. The received list of students now contains Tina Tester. We can also request `http://localhost:3000/students/42` to only receive this particular student that we just added.
+To confirm that it worked we can again get all students with a GET request to `http://localhost:3000/students` like we did before.
+The received list of students now contains Tina Tester.
+We can also request `http://localhost:3000/students/42` to only receive this particular student that we just added.
 
 [^postman]: [Get Postman](https://www.getpostman.com/)
 
 ## Birds Eye View on HTML Templates
 Since Nest.js is "nothing more" than a framework built on top of other HTTP server frameworks the process of rendering HTML is specific to the underlying server framework that's being used. By default Nest.js uses `express` as the server framework. This will be a brief overview to show the `express` way of rendering HTML templates. If you are already familiar with `express` and its view engines you should be fairly familiar with the setup.
 
-We will serve `hbs` [^hbs] templates and make use of `handlebars` Partials in this post. To make it at least somewhat decent I added a stylesheet and a few lines of JS as well. This is what we will get:
+There are various ways of handling interpolation in HTML.
+For this post we will be using `Handlebars` as it's fairly easy to integrate and well established. Luckily there is a `handlebars` wrapper for `express` called `hbs` which we'll be using. This is what we will get:
 
 ![student list](docs/newStudentForm.png)
 
-We will only look at the most important files here. You can get the whole picture by checking out the code at [github repository[TODO:HREF]](...).
+To install `hbs` run `npm i hbs`. We then need to add `hbs` as rendering engine to our Nest.js app. To do so we need to slightly adjust our `bootstrap` function in `src/main.ts`:
 
-[^hbs]: `hbs` is a port/wrapper from `handlebars` (template engine) to run in `express`
+```ts
+...
+const PUBLIC_PATH = join(__dirname, '..', 'public');
+const VIEWS_PATH = join(__dirname, '..', 'views');
 
--------------------------
--- REFINE FROM HERE ON DOWN
--------------------------
+async function bootstrap() {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-To get started let's first define a simple template that allows us to respond to `GET /students` with an HTML rendered list of students instead of the current JSON response. There are various ways of doing interpolation in a template. For this post we will be using Handlebars as it's fairly easy to integrate and well established. Let's setup a new file `src/views/students.hbs` (`hbs` is for `handlebars`):
+  app.useStaticAssets(PUBLIC_PATH);
+  app.setBaseViewsDir(VIEWS_PATH);
+  app.setViewEngine('hbs');
 
-```html
-<ul>
-{{let student of students}}
-  <li>Name: {{student.name}}, Matriculation number: {{student.matriculationNumber}}
+  await app.listen(3000);
+}
 ```
 
-Let's also add another template `src/views/index.hbs` to serve as our main HTML wrapper:
+[^hbs]: `hbs` is a wrapper around `handlebars` (template engine) for `express`
 
-```html
+Let's now create a new template that allows us to respond to `GET /students` with an HTML rendered list of students in `src/views/students.hbs`:
+
+```handlebars
 <!DOCTYPE html>
-<html lang="en">
+<html lang='en'>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Students</title>
+  ...
+  <link rel='stylesheet' href='style.css'>
+  <title>Students with Nest.js</title>
 </head>
 <body>
-  {{fragment}}
+  <form action='students' method='POST'>
+    <label>Matriculation number: <input type='number' name='matriculationNumber'></label>
+    <label>Name: <input type='text' name='name'></label>
+    <button>Save</button>
+  </form>
+
+  <div class='students'>
+    {{#each students}}
+      <div>{{matriculationNumber}}</div>
+      <div>{{name}}</div>
+    {{/each}}
+  </div>
 </body>
 </html>
 ```
 
-To tell Nest.js to render these templates and respond with the generated HTML we need to adjust the Nest.js `app` that's being created in `src/main.ts`:
-
 In the handler for `GET /students` (`students.controller:findAll()`) we now need to do two things:
 - add a `@Render()` decorator with the path to the desired template
-- return everything the template needs to render properly
+- return everything from the handler that the template needs to be rendered
 
 ```typescript
-
+... INSERT NEW CONTROLLER CODE HERE
 ```
-
-We could continue and provide similar functionality for courses and lectures now. This would mostly follow the same process as before though, so we will skip this and look at some more high-level features that Nest.js provides.
-<!-- At this point I wonder where I would have created a html template. Maybe this is worth as a look out so I have a full image? -->
-##
-
 
 ## Things to consider
 - swagger documentation generation

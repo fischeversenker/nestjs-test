@@ -5,20 +5,20 @@
   <meta name='viewport' content='width=device-width, initial-scale=1.0'>
   <meta http-equiv='X-UA-Compatible' content='ie=edge'>
   <link rel='stylesheet' href='style.css'>
-  <script src='main.js'></script>
   <title>Students with Nest.js</title>
 </head>
 <body>
-
-  <form action='students' method='POST' id='newStudentForm'>
+  <form action='students' method='POST'>
     <label>Matriculation number: <input type='number' name='matriculationNumber'></label>
     <label>Name: <input type='text' name='name'></label>
     <button>Save</button>
   </form>
 
-  <div id='students'>
-    {{> students}}
+  <div class='students'>
+    {{#each students}}
+      <div>{{matriculationNumber}}</div>
+      <div>{{name}}</div>
+    {{/each}}
   </div>
-
 </body>
 </html>

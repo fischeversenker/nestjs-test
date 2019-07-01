@@ -3,7 +3,7 @@ body {
   padding: 50px;
 }
 
-#students {
+.students {
   display: inline-grid;
   grid-template-columns: 40px 1fr;
   text-align: left;
