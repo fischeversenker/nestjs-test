@@ -1,36 +1,32 @@
-# Writing a basic HTTP server with Nest.js
+**To follow along you should be at least somewhat familiar with TypeScript, the terminal and node/npm. Experience with Angular definitely helps but is not a requirement.**
 
-**To follow along you should be at least somewhat familiar with TypeScript, the terminal and node/npm.\
-Experience with Angular definitely helps but is not a requirement.**
-
-## Background
+# Background
 TypeScript is fairly common when it comes to Frontend Frameworks.
-For backend frameworks there still are not a lot of options if you want to enjoy TypeScript at framework level. One well established framework based on [express.js](https://expressjs.com) and [koa.js](https://koajs.com/) is [routing-controller](https://github.com/typestack/routing-controllers) but it's stuck at `v0.7.0` since June 2017 and hasn't seen a lot of activity from the original maintainers since. Coincidentally that is around the time when [nest](https://nestjs.com/) emerged.
+For backend frameworks there still are not a lot of options with TypeScript. One well established framework based on [express.js](https://expressjs.com) and [koa.js](https://koajs.com/) is [routing-controller](https://github.com/typestack/routing-controllers) but it's stuck at `v0.7.0` since June 2017 and hasn't seen a lot of activity from the original maintainers since. Coincidentally that is around the time when [Nest.js](https://nestjs.com/) emerged.
 
-## Nest.js
-Nest.js has surpassed `routing-controller`'s success (measured in GitHub stars) manyfold already and is still under heavy active development (`v6.2.0` shipped two days ago at the time of writing this). Like `routing-controller`, nest is built on top of express.js but can optionally be setup to run with [fastify](https://www.fastify.io/).
+# Nest.js
+Nest.js has surpassed `routing-controller`'s success (measured in GitHub stars) manyfold already and is still under heavy active development (`v6.2.0` shipped two days ago at the time of writing this). Like `routing-controller`, Nest.js is built on top of express.js but can also be setup to run with [fastify](https://www.fastify.io/) and other server frameworks.
 
-## What are we going to build?
-I don't have a real life use case for nest just yet, but wanted to try it out anyways.
-In this project and blog post we are going to build a server that manages students [^university].
+# What are we going to build?
+In this project and blog post we are going to build a server that manages students [^1].
 After having setup a new Nest.js project we will teach our server to return students and in a second step we will teach it
 to also accept new students.
 
 Sidenote: For the sake of brevity we won't cover database connections, though. All data will be held in memory.
 
-[^university]: In case you're asking: I am currently working with a local university. That's where the inspiration comes from.
+[^1]: In case you're asking: I am currently working with a local university. That's where the inspiration comes from.
 
-## Create a new Nest.js project via the CLI
-Install the Nest.js CLI globally with `npm install -g @nestjs/cli` and get going with `nest new <project-name>`. If you have both `npm` and `yarn` installed the `nest new ...` command will let you choose between the available package managers for this project. This will create a folder `<project-name>` containing your "blank"[^hello-world] nest.js application.
+# Create a new Nest.js project via the CLI
+Install the Nest.js CLI globally with `npm install -g @nestjs/cli` and get going with `nest new <project-name>`. If you have both `npm` and `yarn` installed the `nest new ...` command will let you choose between the available package managers for this project. This will create a folder `<project-name>` containing your "blank"[^2] Nest.js application.
 
-[^hello-world]: Hello world!
+[^2]: Hello world!
 
-## What did that just generate?
-Inside the new directory `project-name` (or whatever name you chose) you will find a bunch of config and metadata files (`package.json`, `tsconfig.json`, etc.) and a simple nest application in `src/`, complete with Unit- and E2E-tests written with [Jest](https://jestjs.io/).
+# What did that just generate?
+Inside the new directory `project-name` (or whatever name you chose) you will find a bunch of config and metadata files (`package.json`, `tsconfig.json`, etc.) and a simple Nest.js application in `src/`, complete with Unit- and E2E-tests written with [Jest](https://jestjs.io/).
 
 Let's take a closer look at the files that got generated. This will make it easier to understand what we are going to be doing later in this post.
 
-### *main.ts*
+## *main.ts*
 ```ts
 ...
 
@@ -41,9 +37,9 @@ async function bootstrap() {
 bootstrap();
 ```
 
-Bootstraps your application by creating a new nest app and telling it to listen for requests on port 3000.
+Bootstraps your application by creating a new Nest.js app and telling it to listen for requests on port 3000.
 
-### *app.module.ts*
+## *app.module.ts*
 ```ts
 ...
 
@@ -55,13 +51,13 @@ Bootstraps your application by creating a new nest app and telling it to listen 
 export class AppModule {}
 ```
 
-Defines `class AppModule` that is decorated with nest's `@Module()` decorator which receives a list of Controllers and Providers that are used throughout the module or provided to other consuming modules.
+Defines `class AppModule` that is decorated with Nest.js's `@Module()` decorator which receives a list of Controllers and Providers that are used throughout the module or provided to other consuming modules.
 Quick refresher on modules: A "module" is a piece of software that is very well encapsulated and provides a precise range of functions and a public
 interface so clients know how to use these functions.
 
 In the case of Nest.js the module definition very closely resembles the one you might know from Angular. The metadata we pass to the `@Module()` decorator will be explained in more detail later. Keep on reading.
 
-### *app.controller.ts*
+## *app.controller.ts*
 ```ts
 ...
 
@@ -73,17 +69,17 @@ export class AppController {
 ```
 
 Defines `class AppController`.
-This class is decorated with nest's `@Controller()` decorator which wires things up in the
-background [^controller-decorator] and is required for a class to act as a controller.
+This class is decorated with Nest.js's `@Controller()` decorator which wires things up in the
+background [^3] and is required for a class to act as a controller.
 A controller in Nest.js does what any other controller in an http backend framework would do: It provides handlers for routes.
 
 In the `AppController`'s constructor it states a dependency to the `AppService`.
 This dependency will be automatically resolved by Nest.js as long as it's listed in the `providers` of one of the parent modules.
 When the `AppController` is being instantiated it will be passed an instance of `AppService` automatically. Keep on reading to learn how...
 
-[^controller-decorator]: Mostly routing. We'll cover this later in the `StudentsController`.
+[^3]: Mostly routing. We'll cover this later in the `StudentsController`.
 
-### *app.service.ts*
+## *app.service.ts*
 ```ts
 ...
 
@@ -103,7 +99,7 @@ To readers who are familiar with Angular it should be fairly obvious that Nest.j
 
 After we have seen what Nest.js generated for us you can now go ahead and start that new app with `npm start` and browse to `http://localhost:3000` for a rewarding `Hello World!`.
 
-## Serving Students
+# Serving Students
 Let's customize and extend the generated code so that our server can serve students. We start by adding a dedicated new module: `StudentsModule`.
 
 Similar to Angular, Nest.js provides a `generate` CLI functionality. We can create a new Nest.js module with `nest generate module students` (or shorter: `nest g mo students`). The new module will be placed at *src/students/students.module.ts* and will automatically be added to the list of imported modules in  `AppModule`.
@@ -117,7 +113,7 @@ Similar to Angular, Nest.js provides a `generate` CLI functionality. We can crea
 export class StudentsModule {}
 ```
 
-### Model (`students/student.model.ts`)
+## Model (`students/student.model.ts`)
 To make sure controller and service both agree on what a `student` is, we need to define a model. We do so in a separate file *src/students/student.model.ts*:
 
 ```ts
@@ -129,11 +125,11 @@ export interface Student {
 
 In a real life application this model definition would also need to fit into a database. This can be accomplished by using an already well established library like [TypeORM](https://github.com/typeorm/typeorm) that takes care of object-relational mapping and database connections. There is a [section in the nest documentation](https://docs.nestjs.com/techniques/database) regarding *TypeORM* as well as other means to store/manipulate data like using [MongoDB](https://www.mongodb.com/).
 
-With this simplified model (defined as TypeScript interface [^interface]) for students in place we can now start adding some functionality into our `StudentsModule` by creating a service to manage our students.
+With this simplified model (defined as TypeScript interface [^4]) for students in place we can now start adding some functionality into our `StudentsModule` by creating a service to manage our students.
 
-[^interface]: [TypeScript documentation: Interfaces](https://www.typescriptlang.org/docs/handbook/interfaces.html)
+[^4]: [TypeScript documentation: Interfaces](https://www.typescriptlang.org/docs/handbook/interfaces.html)
 
-### Service (`students/students.service.ts`)
+## Service (`students/students.service.ts`)
 We can generate a new service by using Nest.js's CLI again: `nest g s students` (`s`ervice).
 It will be added as *src/students/students.service.ts* and will also be appended to the list of provided services in `StudentsModule`.
 We will also get unit test boilerplates "for free" 🎉
@@ -228,7 +224,7 @@ export class StudentsService {
 
 This new code introduces a private property `_cachedStudents` which holds the already fetched students. It also introduces a bug that when you add new students before you receive some the API is never queried... solving this problem is up to you if you want to. [Pull Requests](https://github.com/fischeversenker/nestjs-test/pulls) with suggestions are very welcome. The code can of course still be improved. The whole caching mechanism and the data holding part could each be separated into their own classes and maybe even modules.
 
-### Controller (`students/students.controller.ts`)
+## Controller (`students/students.controller.ts`)
 Similarly to the service we just covered we can generate a new controller by using Nest.js's CLI: `nest g co students` (`co`ntroller).
 It will be added as *src/students/students.controller.ts* and will also be appended to the list of known controllers in `StudentsModule` automatically.
 The generator will also create unit test boilerplates as well.
@@ -260,16 +256,16 @@ Nest.js probably wouldn't strive like it does if it wasn't so intuitive to use. 
 
 You might as well rename `findAll()` to something like `foobar()` and the app would work the same as it did before (all else unchanged). Meaningful function names are nontheless very valuable when it comes to debugging and generally reading the code.
 
-### Run it!
+## Run it!
 With module, service and controller written we can go ahead and fire up our server with `npm start` (or `npm run start:dev` if you want the server to recompile on file changes).
 As soon as the server is running you can navigate to `http://localhost:3000/students` to receive a list of students (which are actually jsonplaceholder's users) or request `http://localhost:3000/students/1` to receive only one specific student identified by their matriculationNumber (`1` in this case).
 
 So now we can request students both in their entirety and individuals. Wouldn't it be nice to also be able to add new students? Keep on reading...
 
-## Adding students
+# Adding students
 To be able to send new students to our server we need to use a different HTTP method than we did before. The current handlers in our `StudentsController` all deal with GET requests which by definition cannot contain a body. We want to establish a new endpoint for POST requests to add new students (aiming for ReST compliance here). We will first extend `StudentsService`.
 
-### Service (`students/students.service.ts`)
+## Service (`students/students.service.ts`)
 To allow adding new students in a (somewhat) failsafe way we add two new functions to our service:
 
 ```ts
@@ -297,14 +293,14 @@ export class StudentsService {
 }
 ```
 
-The new public function `addStudent()` accepts a `Partial<Student>` [^partials] since we can't rely on the client passing a valid student.
+The new public function `addStudent()` accepts a `Partial<Student>` [^5] since we can't rely on the client passing a valid student.
 Inside of `addStudent()` we call the private function `_safeAddStudent()` that makes sure that our cache is setup and the passed object is a valid student.
-If it's not a valid student we throw an `HttpException` (imported from `@nestjs/common`). This exception will be caught by Nest.js's global "Exception Filter" [^exception-filters]. Nest.js uses this filter layer to catch any uncaught exceptions and respond appropiately. In this case the response will have a status code of 400 (Bad Request) and will pass the error object we gave the `HttpException` in the response body.
+If it's not a valid student we throw an `HttpException` (imported from `@nestjs/common`). This exception will be caught by Nest.js's global "Exception Filter" [^6]. Nest.js uses this filter layer to catch any uncaught exceptions and respond appropiately. In this case the response will have a status code of 400 (Bad Request) and will pass the error object we gave the `HttpException` in the response body.
 
-[^partials]: [TypeScript documentation: Advanced Types](https://www.typescriptlang.org/docs/handbook/advanced-types.html)
-[^exception-filters]: [Nest.js documentation: Exception filters](https://docs.nestjs.com/exception-filters)
+[^5]: [TypeScript documentation: Advanced Types](https://www.typescriptlang.org/docs/handbook/advanced-types.html)
+[^6]: [Nest.js documentation: Exception filters](https://docs.nestjs.com/exception-filters)
 
-### Controller (`students/students.controller.ts`)
+## Controller (`students/students.controller.ts`)
 Now let's add a new endpoint to our `StudentsController` that makes use of the new service functionality:
 
 ```ts
@@ -326,8 +322,8 @@ To create this new POST endpoint we use the `@Post()` decorator (instead of the 
 
 For the `students/:id` endpoint we already made use of the `@Param()` decorator. For this new endpoint we use the similar `@Body()` decorator. This tells Nest.js to pass the request body to our handler. Once the body reaches our handler function it has already convienently been turned into a JS object and thus can easily be handled by us. We also state that we want to get a hold of the response object with the `@Res()` decorator. This decorator injects the underlying server framework's (`express` in this case) response object as opposed to a Nest.js wrapper (which we could get via `@Response()`). `Res` is imported from `@nestjs/common`, whereas the `Response` interface comes directly from `express`. We do this to be able to set the `Location` header... I wasn't able to find the Nest.js way of doing this.
 
-### Try it out!
-Using a tool that enables us to send POST requests we can now test this new functionality of adding students. I decided to use Postman [^postman] to do this. We first do a GET request to `http://localhost:3000/students` to be able to verify that we student we are about to add is not yet on the list. We will receive the same 10 students we received earlier.
+## Try it out!
+Using a tool that enables us to send POST requests we can now test this new functionality of adding students. I decided to use Postman [^7] to do this. We first do a GET request to `http://localhost:3000/students` to be able to verify that we student we are about to add is not yet on the list. We will receive the same 10 students we received earlier.
 
 When we now trigger a POST request to `http://localhost:3000/students` and pass nothing as the request body we will receive the expected response with status code `400` that tells us that we did not send the correct data along with the request. If we however send a JSON formatted valid student (according to our model definition at least) we will receive a "201 Created" that tells us that the student got added to the service's list of students.
 
@@ -342,15 +338,15 @@ To confirm that it worked we can again get all students with a GET request to `h
 The received list of students now contains Tina Tester.
 We can also request `http://localhost:3000/students/42` to only receive this particular student that we just added.
 
-[^postman]: [Get Postman](https://www.getpostman.com/)
+[^7]: [Get Postman](https://www.getpostman.com/)
 
-## Birds Eye View on HTML Templates
+# Birds Eye View on HTML Templates
 Since Nest.js is "nothing more" than a framework built on top of other HTTP server frameworks the process of rendering HTML is specific to the underlying server framework that's being used. By default Nest.js uses `express` as the server framework. This will be a brief overview to show the `express` way of rendering HTML templates. If you are already familiar with `express` and its view engines you should be fairly familiar with the setup.
 
 There are various ways of handling interpolation in HTML.
 For this post we will be using `Handlebars` as it's fairly easy to integrate and well established. Luckily there is a `handlebars` wrapper for `express` called `hbs` which we'll be using. This is what we will get:
 
-![student list](docs/newStudentForm.png)
+![list of students](//images.ctfassets.net/r9k1fy8lu25c/4BuinSN8FSwXWhBgwqNe6C/a3a5c5e284e76e0a96ed378c0e6e92c7/newStudentForm.png)
 
 To install `hbs` run `npm i hbs`. We then need to add `hbs` as rendering engine to our Nest.js app. To do so we need to slightly adjust our `bootstrap` function in `src/main.ts`:
 
@@ -369,8 +365,6 @@ async function bootstrap() {
   await app.listen(3000);
 }
 ```
-
-[^hbs]: `hbs` is a wrapper around `handlebars` (template engine) for `express`
 
 Let's now create a new template that allows us to respond to `GET /students` with an HTML rendered list of students in `src/views/students.hbs`:
 
@@ -407,7 +401,7 @@ In the handler for `GET /students` (`students.controller:findAll()`) we now need
 ... INSERT NEW CONTROLLER CODE HERE
 ```
 
-## Things to consider
+# Things to consider
 - swagger documentation generation
 - testing
 - serving a full-blown FE application with Vue or similar through a template
