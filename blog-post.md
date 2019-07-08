@@ -17,11 +17,9 @@ Sidenote: For the sake of brevity we won't cover database connections, though. A
 [^1]: In case you're asking: I am currently working with a local university. That's where the inspiration comes from.
 
 # Create a new Nest.js project via the CLI
-Install the Nest.js CLI globally with `npm install -g @nestjs/cli` and get going with `nest new <project-name>`. If you have both `npm` and `yarn` installed the `nest new ...` command will let you choose between the available package managers for this project. This will create a folder `<project-name>` containing your "blank"[^2] Nest.js application.
+Install the Nest.js CLI globally with `npm install -g @nestjs/cli` and get going with `nest new <project-name>`. If you have both `npm` and `yarn` installed the `nest new ...` command will let you choose between the available package managers for this project. This will create a folder `<project-name>` containing your "blank" (Hello World!) Nest.js application.
 
-[^2]: Hello world!
-
-# What did that just generate?
+## What did that just generate?
 Inside the new directory `project-name` (or whatever name you chose) you will find a bunch of config and metadata files (`package.json`, `tsconfig.json`, etc.) and a simple Nest.js application in `src/`, complete with Unit- and E2E-tests written with [Jest](https://jestjs.io/).
 
 Let's take a closer look at the files that got generated. This will make it easier to understand what we are going to be doing later in this post.
