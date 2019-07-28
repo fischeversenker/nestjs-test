@@ -67,14 +67,12 @@ export class AppController {
 
 Defines `class AppController`.
 This class is decorated with Nest.js's `@Controller()` decorator which wires things up in the
-background [^3] and is required for a class to act as a controller.
+background (we'll cover this later) and is required for a class to act as a controller.
 A controller in Nest.js does what any other controller in an http backend framework would do: It provides handlers for routes.
 
 In the `AppController`'s constructor it states a dependency to the `AppService`.
 This dependency will be automatically resolved by Nest.js as long as it's listed in the `providers` of one of the parent modules.
 When the `AppController` is being instantiated it will be passed an instance of `AppService` automatically. Keep on reading to learn how...
-
-[^3]: Mostly routing. We'll cover this later in the `StudentsController`.
 
 ## *app.service.ts*
 ```ts
@@ -122,9 +120,7 @@ export interface Student {
 
 In a real life application this model definition would also need to fit into a database. This can be accomplished by using an already well established library like [TypeORM](https://github.com/typeorm/typeorm) that takes care of object-relational mapping and database connections. There is a [section in the nest documentation](https://docs.nestjs.com/techniques/database) regarding *TypeORM* as well as other means to store/manipulate data like using [MongoDB](https://www.mongodb.com/).
 
-With this simplified model (defined as TypeScript interface [^4]) for students in place we can now start adding some functionality into our `StudentsModule` by creating a service to manage our students.
-
-[^4]: [TypeScript documentation: Interfaces](https://www.typescriptlang.org/docs/handbook/interfaces.html)
+With this simplified model (defined as TypeScript interface) for students in place we can now start adding some functionality into our `StudentsModule` by creating a service to manage our students.
 
 ## Service (`students/students.service.ts`)
 We can generate a new service by using Nest.js's CLI again: `nest g s students` (`s`ervice).
@@ -293,12 +289,9 @@ export class StudentsService {
 }
 ```
 
-The new public function `addStudent()` accepts a `Partial<Student>` [^5] since we can't rely on the client passing a valid student.
+The new public function `addStudent()` accepts a `Partial<Student>` (if you don't know about `Partial` you might want to check out the [TypeScript documentation on Advanced Types](https://www.typescriptlang.org/docs/handbook/advanced-types.html)) since we can't rely on the client passing a valid student that fills all the required fields.
 Inside of `addStudent()` we call the private function `_safeAddStudent()` that makes sure that our cache is setup and the passed object is a valid student.
-If it's not a valid student we throw an `HttpException` (imported from `@nestjs/common`). This exception will be caught by Nest.js's global "Exception Filter" [^6]. Nest.js uses this filter layer to catch any uncaught exceptions and respond appropiately. In this case the response will have a status code of 400 (Bad Request) and will pass the error object we gave the `HttpException` in the response body.
-
-[^5]: [TypeScript documentation: Advanced Types](https://www.typescriptlang.org/docs/handbook/advanced-types.html)
-[^6]: [Nest.js documentation: Exception filters](https://docs.nestjs.com/exception-filters)
+If it's not a valid student we throw an `HttpException` (imported from `@nestjs/common`). This exception will be caught by Nest.js's global [Exception filters](https://docs.nestjs.com/exception-filters). Nest.js uses this filter layer to catch any uncaught exceptions and respond appropiately. In this case the response will have a status code of 400 (Bad Request) and will pass the error object we gave the `HttpException` in the response body.
 
 ## Controller (`students/students.controller.ts`)
 Now let's add a new endpoint to our `StudentsController` that makes use of the new service functionality:
@@ -323,7 +316,7 @@ To create this new POST endpoint we use the `@Post()` decorator (instead of the 
 For the `students/:id` endpoint we already made use of the `@Param()` decorator. For this new endpoint we use the similar `@Body()` decorator. This tells Nest.js to pass the request body to our handler. Once the body reaches our handler function it has already convienently been turned into a JS object and thus can easily be handled by us. We also state that we want to get a hold of the response object with the `@Res()` decorator. This decorator injects the underlying server framework's (`express` in this case) response object as opposed to a Nest.js wrapper (which we could get via `@Response()`). `Res` is imported from `@nestjs/common`, whereas the `Response` interface comes directly from `express`. We do this to be able to set the `Location` header... I wasn't able to find the Nest.js way of doing this.
 
 ## Try it out!
-Using a tool that enables us to send POST requests we can now test this new functionality of adding students. I decided to use Postman [^7] to do this. We first do a GET request to `http://localhost:3000/students` to be able to verify that we student we are about to add is not yet on the list. We will receive the same 10 students we received earlier.
+Using a tool that enables us to send POST requests we can now test this new functionality of adding students. I decided to use Postman to do this. We first do a GET request to `http://localhost:3000/students` to be able to verify that we student we are about to add is not yet on the list. We will receive the same 10 students we received earlier.
 
 When we now trigger a POST request to `http://localhost:3000/students` and pass nothing as the request body we will receive the expected response with status code `400` that tells us that we did not send the correct data along with the request. If we however send a JSON formatted valid student (according to our model definition at least) we will receive a "201 Created" that tells us that the student got added to the service's list of students.
 
@@ -337,8 +330,6 @@ When we now trigger a POST request to `http://localhost:3000/students` and pass 
 To confirm that it worked we can again get all students with a GET request to `http://localhost:3000/students` like we did before.
 The received list of students now contains Tina Tester.
 We can also request `http://localhost:3000/students/42` to only receive this particular student that we just added.
-
-[^7]: [Get Postman](https://www.getpostman.com/)
 
 # Birds Eye View on HTML Templates
 Since Nest.js is "nothing more" than a framework built on top of other HTTP server frameworks the process of rendering HTML is specific to the underlying server framework that's being used. By default Nest.js uses `express` as the server framework. If you are already familiar with `express` and its view engines you should be fairly familiar with the setup.
