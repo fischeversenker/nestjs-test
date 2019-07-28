@@ -1,4 +1,4 @@
-**To follow along you should be at least somewhat familiar with TypeScript, the terminal and node/npm. Experience with Angular definitely helps but is not a requirement.**
+**To follow along you should be at least somewhat familiar with TypeScript, the command line and npm. Having experience with Angular definitely helps but is not a requirement.**
 
 # Background
 TypeScript is fairly common when it comes to Frontend Frameworks.
@@ -7,14 +7,13 @@ For backend frameworks there still are not a lot of options with TypeScript. One
 # Nest.js
 Nest.js has surpassed `routing-controller`'s success (measured in GitHub stars) manyfold already and is still under heavy active development (`v6.2.0` shipped two days ago at the time of writing this). Like `routing-controller`, Nest.js is built on top of express.js but can also be setup to run with [fastify](https://www.fastify.io/) and other server frameworks.
 
-# What are we going to build?
-In this project and blog post we are going to build a server that manages students [^1].
-After having setup a new Nest.js project we will teach our server to return students and in a second step we will teach it
-to also accept new students.
+# What is this post about?
+In this project and blog post we are going to build a server that manages university students.
 
-Sidenote: For the sake of brevity we won't cover database connections, though. All data will be held in memory.
+We will setup a new Nest.js server, teach it to read students from an (external) source and to return these students.
+In a second step we will teach the server to accept new students that can be served later on. To finish off we will integrate the template engine `handlebars` to serve rendered HTML on specific requests.
 
-[^1]: In case you're asking: I am currently working with a local university. That's where the inspiration comes from.
+Sidenote: For the sake of brevity we won't cover database connections, though. All data will be fetched once and then held in memory afterwards.
 
 # Create a new Nest.js project via the CLI
 Install the Nest.js CLI globally with `npm install -g @nestjs/cli` and get going with `nest new <project-name>`. If you have both `npm` and `yarn` installed the `nest new ...` command will let you choose between the available package managers for this project. This will create a folder `<project-name>` containing your "blank" (Hello World!) Nest.js application.
@@ -227,7 +226,7 @@ Similarly to the service we just covered we can generate a new controller by usi
 It will be added as *src/students/students.controller.ts* and will also be appended to the list of known controllers in `StudentsModule` automatically.
 The generator will also create unit test boilerplates as well.
 
-This new controller calls service functions and exposes routes in your server. Let's extend the empty controller:
+Let's extend the empty controller so it looks like this:
 
 ```ts
 @Controller('students')
@@ -246,11 +245,14 @@ export class StudentsController {
 }
 ```
 
-Nest.js probably wouldn't strive like it does if it wasn't so intuitive to use. Using the decorator `@Controller('students')` we tell Nest.js to serve this controller at path `/students`. The controller exposes two functions:
-- `findAll()` is decorated with `@Get()` (notice the empty parantheses). This tells Nest.js to respond to any GET request to `/students` with the result of `findAll()`.
-- `find(...)` on the other hand is decorated with `@Get(':matriculationNumber')`, so Nest.js calls this function if it receives a GET request like `/students/0`. Due to the colon notation `:matriculationNumber` Nest.js will know that this part of the resource path can change from request to request and will forward it to the respective function. To get a hold of the parameter(s) inside the function we can add the `@Param()` decorator to the desired argument. Inside the `@Param()` decorator we can specify which parameter we want to grab and can also add a pipe to automagically coerce the parameter. The `ParseIntPipe` in this case turns the received `string` (which all params are initially) into a `number` (Int).
+Nest.js probably wouldn't strive like it does if it wasn't so beautifully intuitive to use. Using the decorator `@Controller('students')` we tell Nest.js to serve this controller at path `/students`. The controller exposes two functions:
 
-**Note that the name of the function does not in any way dictate the URL of the resource. That's all handled by the `@Get('path/to/your/resource')` decorator.**
+**`async findAll()`** is decorated with `@Get()` (notice the empty parantheses). This tells Nest.js to respond to any GET request to `/students` (the controller's base path) with the result of `findAll()`.
+
+**`async find(...)`** on the other hand is decorated with `@Get(':matriculationNumber')`, so Nest.js calls this function if it receives GET requests to paths like `/students/0`. Using the colon notation (`:matriculationNumber`) Nest.js will know that this part of the path is variable and generally interesting. To get a hold of the actual values of these placeholders we can add the `@Param()` decorator to the desired argument of our respective handler function. Inside the `@Param()` decorator we can specify which parameter we want to grab and can also add a pipe to automagically coerce the parameter. The `ParseIntPipe` in this case turns the received `string` (which all params are initially) into a `number` (Int).
+
+**Note:**\
+The name of the decorated function does not dictate the path to this controller. The path is defined by the argument given to the `@Get()` decorator function. In this case
 
 You might as well rename `findAll()` to something like `foobar()` and the app would work the same as it did before (all else unchanged). Meaningful function names are nontheless very valuable when it comes to debugging and generally reading the code.
 
@@ -339,10 +341,10 @@ We can also request `http://localhost:3000/students/42` to only receive this par
 [^7]: [Get Postman](https://www.getpostman.com/)
 
 # Birds Eye View on HTML Templates
-Since Nest.js is "nothing more" than a framework built on top of other HTTP server frameworks the process of rendering HTML is specific to the underlying server framework that's being used. By default Nest.js uses `express` as the server framework. This will be a brief overview to show the `express` way of rendering HTML templates. If you are already familiar with `express` and its view engines you should be fairly familiar with the setup.
+Since Nest.js is "nothing more" than a framework built on top of other HTTP server frameworks the process of rendering HTML is specific to the underlying server framework that's being used. By default Nest.js uses `express` as the server framework. If you are already familiar with `express` and its view engines you should be fairly familiar with the setup.
 
 There are various ways of handling interpolation in HTML.
-For this post we will be using `Handlebars` as it's fairly easy to integrate and well established. Luckily there is a `handlebars` wrapper for `express` called `hbs` which we'll be using. This is what we will get:
+For this post we will be using `Handlebars` as it's fairly easy to integrate and well established. Luckily there is a `handlebars` wrapper for `express` called `hbs` which we'll be using. This is what we will be left with when we are done:
 
 ![list of students](//images.ctfassets.net/r9k1fy8lu25c/4BuinSN8FSwXWhBgwqNe6C/a3a5c5e284e76e0a96ed378c0e6e92c7/newStudentForm.png)
 
@@ -378,7 +380,7 @@ Let's now create a new template that allows us to respond to `GET /students` wit
   <form action='students' method='POST'>
     <label>Matriculation number: <input type='number' name='matriculationNumber'></label>
     <label>Name: <input type='text' name='name'></label>
-    <button>Save</button>
+    <button type='submit'>Save</button>
   </form>
 
   <div class='students'>
@@ -396,21 +398,26 @@ In the handler for `GET /students` (`students.controller:findAll()`) we now need
 - return everything from the handler that the template needs to be rendered
 
 ```typescript
-... INSERT NEW CONTROLLER CODE HERE
+...
+@Controller('students')
+export class StudentsController {
+  constructor(private readonly studentsService: StudentsService) {}
+
+  @Get()
+  @Render('students')
+  async findAll(): Promise<Object> {
+    const students = await this.studentsService.findAll();
+    return { students };
+  }
+  ...
+}
 ```
 
-# Things to consider
-- swagger documentation generation
-- testing
-- serving a full-blown FE application with Vue or similar through a template
+This will now serve the HTML that handlebars renders from  at `GET /students`. Depending on the template engine of your choice you can now get more adavanced with layout files and other techniques to build more scalable HTML.
 
+# Have a look at the code and start experimenting
+You can download the code in this post from the [Github repository](https://github.com/fischeversenker/nestjs-test/) and play around with it.
 
-<!--
-Nice reading.
-1. I miss some introduction what you are doing
-2. The document outline is nice. Handling GET & POST.
-3. A little bit of template handling would be awesome as I would have everything at hand to get started.
-4. The end comes pretty quickly, I wasn't ready to stop reading and wanted to read so much more.
-5. **The** detail/summary thing at the beginning is nice. But after reading everything it feels akward and misplaced. Either make it a chapter or remove it. You are not using details/summary for anything else so it feels like "what happend back there, why did he told me about that stuff which such a mechnanism/
+There are various ways to enhance this code and to widen your gained knowledge: Have a look at [testing your Nest.js application](https://docs.nestjs.com/fundamentals/testing) or how to [integrate swagger API documentation](https://docs.nestjs.com/recipes/swagger). The official [Nest.js documentation](https://docs.nestjs.com/) is a great place to start and provides loads of well-written techniques and recipes. Bonus: To Angular developers the structure of the documentation should be fairly familiar. Now go ahead and get your hands dirty!
 
- -->
+## Thank you for reading <3
