@@ -25,8 +25,9 @@ Inside the new directory `project-name` (or whatever name you chose) you will fi
 
 Let's take a closer look at the files that got generated. This will make it easier to understand what we are going to be doing later in this post.
 
-## *main.ts*
+#### *main.ts*
 ```ts
+# src/main.ts
 ...
 
 async function bootstrap() {
@@ -38,8 +39,9 @@ bootstrap();
 
 Bootstraps your application by creating a new Nest app and telling it to listen for requests on port 3000.
 
-## *app.module.ts*
+#### *app.module.ts*
 ```ts
+# src/app.module.ts
 ...
 
 @Module({
@@ -56,8 +58,9 @@ interface so clients know how to use these functions.
 
 In the case of Nest the module definition very closely resembles the one you might know from Angular. The metadata we pass to the `@Module()` decorator will be explained in more detail later. Keep on reading.
 
-## *app.controller.ts*
+#### *app.controller.ts*
 ```ts
+# src/app.controller.ts
 ...
 
 @Controller()
@@ -76,8 +79,9 @@ In the `AppController`'s constructor it states a dependency to the `AppService`.
 This dependency will be automatically resolved by Nest as long as it's listed in the `providers` of one of the parent modules.
 When the `AppController` is being instantiated it will be passed an instance of `AppService` automatically. Keep on reading to learn how...
 
-## *app.service.ts*
+#### *app.service.ts*
 ```ts
+# src/app.service.ts
 ...
 
 @Injectable()
@@ -102,6 +106,9 @@ Let's customize and extend the generated code so that our server can serve stude
 Similar to Angular, Nest provides a `generate` CLI functionality. We can create a new Nest module with `nest generate module students` (or shorter: `nest g mo students`). The new module will be placed at *src/students/students.module.ts* and will automatically be added to the list of imported modules in  `AppModule`.
 
 ```ts
+# src/students/students.module.ts
+...
+
 @Module({
   imports: [],
   controllers: [],
@@ -114,6 +121,8 @@ export class StudentsModule {}
 To make sure controller and service both agree on what a `student` is, we need to define a model. We do so in a separate file *src/students/student.model.ts*:
 
 ```ts
+# src/students/students.model.ts
+
 export interface Student {
   matriculationNumber: number;
   name: string;
@@ -132,6 +141,9 @@ We will also get unit test boilerplates "for free" 🎉
 The service will manage the known students, i.e. will fetch students from a data source as well as allow to create, read, update and delete students (*CRUD*). *Persisting data will not be part of this blog post, for now we will simply keep any data in memory as long as our server is running.*
 
 ```ts
+# src/students/students.service.ts
+...
+
 @Injectable()
 export class StudentsService {
   private students: Student[];
@@ -150,6 +162,9 @@ To actually have some students to work with we can fetch some placeholder user d
 
 ```ts
 @Injectable()
+# src/students/students.service.ts
+...
+
 export class StudentsService implements OnModuleInit {
   constructor(private readonly httpService: HttpService) {}
 
@@ -183,6 +198,9 @@ Inside the `onModuleInit()` we retrieve `jsonplaceholder`s list of users and tra
 We can avoid the bad lifecycle hooking and can overall drastically improve the above service code by applying rough manual caching and some more of that sweet `async/await`:
 
 ```ts
+# src/students/students.service.ts
+...
+
 @Injectable()
 export class StudentsService {
   private _cachedStudents: Student[];
@@ -227,6 +245,9 @@ The generator will also create unit test boilerplates as well.
 Let's extend the empty controller so it looks like this:
 
 ```ts
+# src/students/students.controller.ts
+...
+
 @Controller('students')
 export class StudentsController {
   constructor(private readonly studentsService: StudentsService) {}
@@ -267,6 +288,9 @@ To be able to send new students to our server we need to use a different HTTP me
 To allow adding new students in a (somewhat) failsafe way we add two new functions to our service:
 
 ```ts
+# src/students/students.service.ts
+...
+
 @Injectable()
 export class StudentsService {
   ...
@@ -299,6 +323,9 @@ If it's not a valid student we throw an `HttpException` (imported from `@nestjs/
 Now let's add a new endpoint to our `StudentsController` that makes use of the new service functionality:
 
 ```ts
+# src/students/students.controller.ts
+...
+
 @Controller('students')
 export class StudentsController {
   ...
@@ -344,7 +371,9 @@ For this post we will be using `Handlebars` as it's fairly easy to integrate and
 To install `hbs` run `npm i hbs`. We then need to add `hbs` as rendering engine to our Nest app. To do so we need to slightly adjust our `bootstrap` function in `src/main.ts`:
 
 ```ts
+# src/main.ts
 ...
+
 const PUBLIC_PATH = join(__dirname, '..', 'public');
 const VIEWS_PATH = join(__dirname, '..', 'views');
 
@@ -362,6 +391,8 @@ async function bootstrap() {
 Let's now create a new template that allows us to respond to `GET /students` with an HTML rendered list of students in `src/views/students.hbs`:
 
 ```handlebars
+# views/students.hbs
+
 <!DOCTYPE html>
 <html lang='en'>
 <head>
@@ -386,12 +417,32 @@ Let's now create a new template that allows us to respond to `GET /students` wit
 </html>
 ```
 
-In the handler for `GET /students` (`students.controller:findAll()`) we now need to do two things:
+You might have spotted the `style.css` in there. This is stored at `public/style.css` and contains a few lines to make the page slightly more pleasant to the eye:
+
+```css
+# public/style.css
+
+body {
+  text-align: center;
+  padding: 50px;
+}
+
+.students {
+  display: inline-grid;
+  grid-template-columns: 40px 1fr;
+  text-align: left;
+  margin: 50px;
+}
+```
+
+In the handler for `GET /students` (`students.controller:findAll()`) we now need to do two things now:
 - add a `@Render()` decorator with the path to the desired template
-- return everything from the handler that the template needs to be rendered
+- provide the template with everything it needs to be rendered
 
 ```typescript
+# src/students/students.controller.ts
 ...
+
 @Controller('students')
 export class StudentsController {
   constructor(private readonly studentsService: StudentsService) {}
