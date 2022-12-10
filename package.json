@@ -22,7 +22,7 @@
     "@nestjs/common": "^6.3.1",
     "@nestjs/core": "^6.0.4",
     "@nestjs/microservices": "^6.0.4",
-    "@nestjs/platform-express": "^6.0.4",
+    "@nestjs/platform-express": "^9.2.1",
     "@nestjs/websockets": "^6.0.4",
     "hbs": "^4.0.4",
     "reflect-metadata": "0.1.13",
